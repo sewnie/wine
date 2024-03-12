@@ -9,23 +9,23 @@ import (
 	"os/exec"
 )
 
+// For further information regarding Cmd, refer to [exec.Cmd].
 type Cmd struct {
 	*exec.Cmd
 }
 
-// Command returns the Cmd struct to execute the named program with the given arguments.
+// Command returns the Cmd struct to execute the named program
+// with the given arguments within the Prefix.
 // It is reccomended to use [Wine] to run wine as opposed to Command.
 //
-
 // For further information regarding Command, refer to [exec.Command].
 func (p *Prefix) Command(name string, arg ...string) *Cmd {
 	cmd := exec.Command(name, arg...)
+	cmd.Stderr = p.Stderr
+	cmd.Stdout = p.Stdout
 	cmd.Env = append(cmd.Environ(),
 		"WINEPREFIX="+p.dir,
 	)
-
-	cmd.Stderr = p.Stderr
-	cmd.Stdout = p.Stdout
 
 	return &Cmd{
 		Cmd: cmd,
@@ -40,7 +40,7 @@ func (c *Cmd) Run() error {
 	return c.Wait()
 }
 
-// Refer to [exec.Cmd.Start] and [Command].
+// Refer to [exec.Cmd.Start].
 //
 // There was a long discussion in #winehq regarding starting wine from
 // Go with os/exec when it's stderr and stdout was set to a file. This

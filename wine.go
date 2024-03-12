@@ -1,10 +1,8 @@
-// Package wine implements wine program command routines for
-// interacting with a wineprefix [Prefix]
+// The wine package helps manage a Wineprefix and run Wine.
 package wine
 
 import (
 	"errors"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,44 +12,6 @@ var (
 	ErrWineNotFound = errors.New("wine64 not found in $PATH or wineroot")
 	ErrPrefixNotAbs = errors.New("prefix directory is not an absolute path")
 )
-
-// Prefix is a representation of a wineprefix, which is where
-// WINE stores its data and is equivalent to a C:\ drive.
-type Prefix struct {
-	// Path to a wine installation.
-	Root string
-
-	// Stdout and Stderr specify the descendant Prefix wine call's
-	// standard output and error. This is mostly reserved for logging purposes.
-	// By default, they will be set to their os counterparts.
-	Stderr io.Writer
-	Stdout io.Writer
-
-	dir string // Path to wineprefix
-}
-
-// New returns a new Prefix.
-//
-// dir must be an absolute path and has correct permissions
-// to modify.
-func New(dir string, root string) *Prefix {
-	return &Prefix{
-		Root:   root,
-		Stderr: os.Stderr,
-		Stdout: os.Stdout,
-		dir:    dir,
-	}
-}
-
-// String implements the Stringer interface.
-func (p Prefix) String() string {
-	return p.Dir()
-}
-
-// Dir returns the directory of the Prefix.
-func (p *Prefix) Dir() string {
-	return p.dir
-}
 
 // Wine returns a new Cmd with the prefix's Wine as the named program.
 //
