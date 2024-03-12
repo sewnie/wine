@@ -18,11 +18,21 @@ const (
 	REG_NONE      RegistryType = "REG_NONE"
 )
 
-// RegistryAdd adds a new registry key to the Prefix with the named key, value, type, and data.
+// RegistryAdd adds a new registry key to the Wineprefix with the named key, value, type, and data.
 func (p *Prefix) RegistryAdd(key, value string, rtype RegistryType, data string) error {
 	if key == "" {
 		return errors.New("no registry key given")
 	}
 
 	return p.Wine("reg", "add", key, "/v", value, "/t", string(rtype), "/d", data, "/f").Run()
+}
+
+// RegistryDelete deletes a registry key of the named key and value to be removed
+// from the Wineprefix.
+func (p *Prefix) RegistryDelete(key, value string) error {
+	if key == "" {
+		return errors.New("no registry key given")
+	}
+
+	return p.Wine("reg", "delete", key, "/v", value, "/f").Run()
 }
