@@ -9,7 +9,10 @@ import (
 	"os/exec"
 )
 
-// For further information regarding Cmd, refer to [exec.Cmd].
+// Cmd is is a struct wrapper that overrides methods to better interact
+// with a Wineprefix.
+//
+// For further information, refer to [exec.Cmd].
 type Cmd struct {
 	*exec.Cmd
 }
@@ -18,7 +21,7 @@ type Cmd struct {
 // with the given arguments within the Prefix.
 // It is reccomended to use [Wine] to run wine as opposed to Command.
 //
-// For further information regarding Command, refer to [exec.Command].
+// For further information, refer to [exec.Command].
 func (p *Prefix) Command(name string, arg ...string) *Cmd {
 	cmd := exec.Command(name, arg...)
 	cmd.Stderr = p.Stderr
@@ -41,15 +44,14 @@ func (c *Cmd) Run() error {
 }
 
 // Refer to [exec.Cmd.Start].
-//
-// There was a long discussion in #winehq regarding starting wine from
-// Go with os/exec when it's stderr and stdout was set to a file. This
-// behavior causes wineserver to start alongside the process instead of
-// the background, creating issues such as Wineserver waiting for processes
-// alongside the executable - having timeout issues, etc.
-// A stderr pipe will be made to mitigate this behavior when and if
-// the prefix's stderr is non-nil or not os.Stderr.
 func (c *Cmd) Start() error {
+	// There was a long discussion in #winehq regarding starting wine from
+	// Go with os/exec when it's stderr and stdout was set to a file. This
+	// behavior causes wineserver to start alongside the process instead of
+	// the background, creating issues such as Wineserver waiting for processes
+	// alongside the executable - having timeout issues, etc.
+	// A stderr pipe will be made to mitigate this behavior when and if
+	// the prefix's stderr is non-nil or not os.Stderr.
 	if c.Process != nil {
 		return errors.New("exec: already started")
 	}
