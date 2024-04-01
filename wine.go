@@ -17,7 +17,7 @@ var (
 //
 // The Wine executable used is a path to the system or Prefix's Root's 'wine64'
 // if present. an attempt to resolve for a [ULWGL launcher] will be made if
-// it is present and necessary environment variables will be set.
+// it is present and necessary environment variables will be set to the command.
 //
 // [ULWGL launcher]: https://github.com/Open-Wine-Components/ULWGL-launcher
 func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
@@ -26,7 +26,6 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	if p.Root != "" {
 		ulwgl, err := exec.LookPath(filepath.Join(p.Root, "ulwgl-run"))
 		if err == nil {
-			os.Setenv("STORE", "none")
 			wine = ulwgl
 		}
 
@@ -52,7 +51,10 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	}
 
 	if cmd.Args[0] == "ulwgl-run" {
-		cmd.Env = append(cmd.Environ(), "PROTON_VERB=runinprefix")
+		cmd.Env = append(cmd.Environ(),
+			"STORE=none",
+			"PROTON_VERB=runinprefix",
+		)
 	}
 
 	return cmd
