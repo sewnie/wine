@@ -50,7 +50,7 @@ func main() {
 	log.Println("User's AppData directory:", appData)
 
 	err = pfx.RegistryAdd(`HKEY_CURRENT_USER\Software\Wine\Explorer\Desktops`,
-    	"Default", wine.REG_SZ, "1920x1080")
+		"Default", wine.REG_SZ, "1920x1080")
     if err != nil {
 		log.Fatal(err)
 	}
@@ -64,8 +64,6 @@ func main() {
 	wineVer := pfx.Version()
 	log.Println("Wine version:", wineVer)
 
-	if err := pfx.Kill(); err != nil {
-		log.Fatal(err)
-	}
+	_ = pfx.Kill()
 }
 ```
