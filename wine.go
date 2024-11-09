@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	ErrUMURequired = errors.New("umu-run required in $PATH to utilize Proton")
 	ErrWineNotFound = errors.New("wine64 not found in $PATH or wineroot")
 	ErrPrefixNotAbs = errors.New("prefix directory is not an absolute path")
 )
@@ -16,44 +17,45 @@ var (
 // Wine returns a new Cmd with the prefix's Wine as the named program.
 //
 // The Wine executable used is a path to the system or Prefix's Root's 'wine64'
-// if present. an attempt to resolve for a [ULWGL launcher] will be made if
-// it is present and necessary environment variables will be set to the command.
+// if present. an attempt to resolve for a [UMU Launcher] will be performed.
 //
-// [ULWGL launcher]: https://github.com/Open-Wine-Components/ULWGL-launcher
+// UMU launcher supports downloading its own UMU-Proton if a proton
+// path is not given, but for user preferences, the check will
+// only be preferred if a Proton path was set.
+//
+// [UMU launcher]: https://github.com/Open-Wine-Components/umu-launcher
 func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	wine := "wine64"
 
 	if p.Root != "" {
-		ulwgl, err := exec.LookPath(filepath.Join(p.Root, "ulwgl-run"))
-		if err == nil {
-			wine = ulwgl
-		}
-
 		wine = filepath.Join(p.Root, "bin", "wine64")
+
+		if _, err := os.Stat(filepath.Join(p.Root, "proton")); err == nil {
+			wine = "umu-run"
+		} 
 	}
 
 	arg = append([]string{exe}, arg...)
 	cmd := p.Command(wine, arg...)
 
 	if cmd.Err != nil && errors.Is(cmd.Err, exec.ErrNotFound) {
-		cmd.Err = ErrWineNotFound
+		if cmd.Args[0] == "umu-run" {
+			cmd.Err = ErrUMURequired
+		} else {
+			cmd.Err = ErrWineNotFound
+		}
 	}
-
-	// Always ensure its created, wine will complain if the root
-	// directory doesnt exist
-	if err := os.MkdirAll(p.dir, 0o755); err != nil {
-		cmd.Err = err
-	}
-
+	
 	// Wine requires a absolute path for the wineprefix
-	if !filepath.IsAbs(p.dir) {
+	if p.dir != "" && !filepath.IsAbs(p.dir) {
 		cmd.Err = ErrPrefixNotAbs
 	}
 
-	if cmd.Args[0] == "ulwgl-run" {
+	if cmd.Args[0] == "umu-run" {
 		cmd.Env = append(cmd.Environ(),
 			"STORE=none",
-			"PROTON_VERB=runinprefix",
+			"GAMEID=0",
+			"PROTONPATH="+p.Root,
 		)
 	}
 

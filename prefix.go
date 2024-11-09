@@ -8,7 +8,7 @@ import (
 // Prefix is a representation of a Wineprefix, which is where
 // Wine stores its data and is equivalent to a C:\ drive.
 type Prefix struct {
-	// Path to a wine installation.
+	// Path to a Wine or Proton installation.
 	Root string
 
 	// Stdout and Stderr specify the descendant Prefix's Command
@@ -17,13 +17,14 @@ type Prefix struct {
 	Stderr io.Writer
 	Stdout io.Writer
 
-	dir string // Path to wineprefix
+	dir string // Path to wineprefix.
 }
 
 // New returns a new Prefix.
 //
-// The given directory must be owned by the current user, and
-// must be an absolute path, otherwise running Wine will fail.
+// The given directory, an optional path to the Wineprefix, 
+// must be owned by the current user, and must be an absolute path,
+// otherwise running Wine will fail.
 func New(dir string, root string) *Prefix {
 	return &Prefix{
 		Root:   root,
@@ -33,12 +34,13 @@ func New(dir string, root string) *Prefix {
 	}
 }
 
-// String implements the Stringer interface.
+// String implements the Stringer interface, returning the directory
+// of the Wineprefix.
 func (p Prefix) String() string {
 	return p.Dir()
 }
 
-// Dir returns the directory of the Prefix.
+// Dir returns the directory of the [Prefix].
 func (p *Prefix) Dir() string {
 	return p.dir
 }

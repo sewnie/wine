@@ -15,23 +15,26 @@ import (
 // For further information, refer to [exec.Cmd].
 type Cmd struct {
 	*exec.Cmd
+
+	prefix string
 }
 
 // Command returns the Cmd struct to execute the named program
 // with the given arguments within the Prefix.
-// It is reccomended to use [Wine] to run wine as opposed to Command.
+// It is reccomended to use [Prefix.Wine] to run wine as opposed to Command.
 //
 // For further information, refer to [exec.Command].
 func (p *Prefix) Command(name string, arg ...string) *Cmd {
 	cmd := exec.Command(name, arg...)
 	cmd.Stderr = p.Stderr
 	cmd.Stdout = p.Stdout
-	cmd.Env = append(cmd.Environ(),
-		"WINEPREFIX="+p.dir,
-	)
+	if p.dir != "" {
+		cmd.Env = append(cmd.Environ(), "WINEPREFIX="+p.dir)
+	}
 
 	return &Cmd{
 		Cmd: cmd,
+		prefix: p.dir,
 	}
 }
 
@@ -60,7 +63,13 @@ func (c *Cmd) Start() error {
 		return c.Err
 	}
 
-	if c.Stderr != nil && c.Stderr != os.Stderr {
+	// Always ensure its created, wine will complain if the root
+	// directory doesnt exist
+	if c.prefix != "" {
+		c.Err = os.MkdirAll(c.prefix, 0o755)
+	}
+
+	if c.Err != nil && c.Stderr != nil && c.Stderr != os.Stderr {
 		pfxStderr := c.Stderr
 		c.Stderr = nil
 
