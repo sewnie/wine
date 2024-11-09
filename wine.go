@@ -31,7 +31,7 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 		wine = filepath.Join(p.Root, "bin", "wine64")
 
 		if _, err := os.Stat(filepath.Join(p.Root, "proton")); err == nil {
-			wine = "umu-run"
+			wine = filepath.Join(p.Root, "files", "bin", "wine64")
 		} 
 	}
 
@@ -39,24 +39,12 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	cmd := p.Command(wine, arg...)
 
 	if cmd.Err != nil && errors.Is(cmd.Err, exec.ErrNotFound) {
-		if cmd.Args[0] == "umu-run" {
-			cmd.Err = ErrUMURequired
-		} else {
-			cmd.Err = ErrWineNotFound
-		}
+		cmd.Err = ErrWineNotFound
 	}
 	
-	// Wine requires a absolute path for the wineprefix
+	// Wine requires a absolute path for the Wineprefix.
 	if p.dir != "" && !filepath.IsAbs(p.dir) {
 		cmd.Err = ErrPrefixNotAbs
-	}
-
-	if cmd.Args[0] == "umu-run" {
-		cmd.Env = append(cmd.Environ(),
-			"STORE=none",
-			"GAMEID=0",
-			"PROTONPATH="+p.Root,
-		)
 	}
 
 	return cmd
