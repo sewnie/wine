@@ -54,7 +54,7 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	}
 
 	if cmd.Args[0] == "umu-run" {
-		cmd.Env = append(cmd.Environ(), "GAMEID=0", "PROTONPATH="+p.Root)
+		cmd.Env = append(cmd.Environ(), "GAMEID=0", "PROTONPATH="+p.Root, "PROTON_VERB=run")
 	}
 
 	return cmd
