@@ -28,6 +28,11 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 
 	if p.Root != "" && p.IsProton() {
 		wine = filepath.Join(p.Root, "files", "bin", "wine64")
+
+		umu, err := exec.LookPath("umu-run")
+		if err == nil {
+			wine = umu
+		}
 	} else if p.Root != "" {
 		wine = filepath.Join(p.Root, "bin", "wine64")
 	}
@@ -46,6 +51,10 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	// Wine requires a absolute path for the Wineprefix.
 	if p.dir != "" && !filepath.IsAbs(p.dir) {
 		cmd.Err = ErrPrefixNotAbs
+	}
+
+	if cmd.Args[0] == "umu-run" {
+		cmd.Env = append(cmd.Environ(), "GAMEID=0", "PROTONPATH="+p.Root)
 	}
 
 	return cmd
