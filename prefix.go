@@ -22,7 +22,7 @@ type Prefix struct {
 
 // New returns a new Wineprefix.
 //
-// The given directory, an optional path to the Wineprefix, 
+// The given directory, an optional path to the Wineprefix,
 // must be owned by the current user, and must be an absolute path,
 // otherwise running Wine will fail.
 func New(dir string, root string) *Prefix {

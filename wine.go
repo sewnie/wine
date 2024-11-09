@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	ErrUMURequired = errors.New("umu-run required in $PATH to utilize Proton")
 	ErrWineNotFound = errors.New("wine64 not found in $PATH or wineroot")
 	ErrPrefixNotAbs = errors.New("prefix directory is not an absolute path")
 )
@@ -32,7 +31,7 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 
 		if _, err := os.Stat(filepath.Join(p.Root, "proton")); err == nil {
 			wine = filepath.Join(p.Root, "files", "bin", "wine64")
-		} 
+		}
 	}
 
 	arg = append([]string{exe}, arg...)
@@ -41,7 +40,7 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	if cmd.Err != nil && errors.Is(cmd.Err, exec.ErrNotFound) {
 		cmd.Err = ErrWineNotFound
 	}
-	
+
 	// Wine requires a absolute path for the Wineprefix.
 	if p.dir != "" && !filepath.IsAbs(p.dir) {
 		cmd.Err = ErrPrefixNotAbs

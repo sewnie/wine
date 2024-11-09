@@ -33,7 +33,7 @@ func (p *Prefix) Command(name string, arg ...string) *Cmd {
 	}
 
 	return &Cmd{
-		Cmd: cmd,
+		Cmd:    cmd,
 		prefix: p.dir,
 	}
 }
