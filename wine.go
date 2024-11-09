@@ -36,9 +36,13 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 
 	arg = append([]string{exe}, arg...)
 	cmd := p.Command(wine, arg...)
+	_, err := os.Stat(wine)
 
-	if cmd.Err != nil && errors.Is(cmd.Err, exec.ErrNotFound) {
+	if (cmd.Err != nil && errors.Is(cmd.Err, exec.ErrNotFound)) ||
+		errors.Is(err, os.ErrNotExist) {
 		cmd.Err = ErrWineNotFound
+	} else if cmd.Err == nil && err != nil {
+		cmd.Err = err
 	}
 
 	// Wine requires a absolute path for the Wineprefix.
