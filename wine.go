@@ -26,12 +26,10 @@ var (
 func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	wine := "wine64"
 
-	if p.Root != "" {
+	if p.Root != "" && p.IsProton() {
+		wine = filepath.Join(p.Root, "files", "bin", "wine64")
+	} else if p.Root != "" {
 		wine = filepath.Join(p.Root, "bin", "wine64")
-
-		if _, err := os.Stat(filepath.Join(p.Root, "proton")); err == nil {
-			wine = filepath.Join(p.Root, "files", "bin", "wine64")
-		}
 	}
 
 	arg = append([]string{exe}, arg...)

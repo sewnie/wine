@@ -3,6 +3,7 @@ package wine
 import (
 	"io"
 	"os"
+	"path/filepath"
 )
 
 // Prefix is a representation of a Wineprefix, which is where
@@ -43,4 +44,10 @@ func (p Prefix) String() string {
 // Dir returns the directory of the Wineprefix.
 func (p *Prefix) Dir() string {
 	return p.dir
+}
+
+// IsProton determines if the current Prefix Root is Proton.
+func (p *Prefix) IsProton() bool {
+	_, err := os.Stat(filepath.Join(p.Root, "proton"))
+	return err == nil
 }
