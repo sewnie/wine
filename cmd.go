@@ -20,7 +20,7 @@ type Cmd struct {
 }
 
 // Command returns the Cmd struct to execute the named program
-// with the given arguments within the Prefix.
+// with the given arguments within the Wineprefix.
 // It is reccomended to use [Prefix.Wine] to run wine as opposed to Command.
 //
 // For further information, refer to [exec.Command].
@@ -48,13 +48,6 @@ func (c *Cmd) Run() error {
 
 // Refer to [exec.Cmd.Start].
 func (c *Cmd) Start() error {
-	// There was a long discussion in #winehq regarding starting wine from
-	// Go with os/exec when it's stderr and stdout was set to a file. This
-	// behavior causes wineserver to start alongside the process instead of
-	// the background, creating issues such as Wineserver waiting for processes
-	// alongside the executable - having timeout issues, etc.
-	// A stderr pipe will be made to mitigate this behavior when and if
-	// the prefix's stderr is non-nil or not os.Stderr.
 	if c.Process != nil {
 		return errors.New("exec: already started")
 	}
@@ -69,6 +62,13 @@ func (c *Cmd) Start() error {
 		c.Err = os.MkdirAll(c.prefix, 0o755)
 	}
 
+	// There was a long discussion in #winehq regarding starting wine from
+	// Go with os/exec when it's stderr and stdout was set to a file. This
+	// behavior causes wineserver to start alongside the process instead of
+	// the background, creating issues such as Wineserver waiting for processes
+	// alongside the executable - having timeout issues, etc.
+	// A stderr pipe will be made to mitigate this behavior when and if
+	// the prefix's stderr is non-nil or not os.Stderr.
 	if c.Err != nil && c.Stderr != nil && c.Stderr != os.Stderr {
 		pfxStderr := c.Stderr
 		c.Stderr = nil

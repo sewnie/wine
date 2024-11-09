@@ -14,7 +14,7 @@ var (
 	ErrPrefixNotAbs = errors.New("prefix directory is not an absolute path")
 )
 
-// Wine returns a new Cmd with the prefix's Wine as the named program.
+// Wine returns a appropiately selected Wine for the Wineprefix.
 //
 // The Wine executable used is a path to the system or Prefix's Root's 'wine64'
 // if present. an attempt to resolve for a [UMU Launcher] will be performed.
@@ -62,7 +62,7 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	return cmd
 }
 
-// Kill kills the Prefix's processes.
+// Kill kills the Wineprefix's processes.
 func (p *Prefix) Kill() error {
 	return p.Wine("wineboot", "-k").Run()
 }
@@ -72,12 +72,12 @@ func (p *Prefix) Init() error {
 	return p.Wine("wineboot", "-i").Run()
 }
 
-// Update updates the wineprefix directory.
+// Update updates the Wineprefix directory.
 func (p *Prefix) Update() error {
 	return p.Wine("wineboot", "-u").Run()
 }
 
-// Version returns the wineprefix's Wine version.
+// Version returns the Wineprefix's Wine version.
 func (p *Prefix) Version() string {
 	cmd := p.Wine("--version")
 	cmd.Stdout = nil // required for Output()

@@ -20,7 +20,7 @@ type Prefix struct {
 	dir string // Path to wineprefix.
 }
 
-// New returns a new Prefix.
+// New returns a new Wineprefix.
 //
 // The given directory, an optional path to the Wineprefix, 
 // must be owned by the current user, and must be an absolute path,
@@ -40,7 +40,7 @@ func (p Prefix) String() string {
 	return p.Dir()
 }
 
-// Dir returns the directory of the [Prefix].
+// Dir returns the directory of the Wineprefix.
 func (p *Prefix) Dir() string {
 	return p.dir
 }
