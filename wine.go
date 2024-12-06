@@ -39,7 +39,7 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 
 	arg = append([]string{exe}, arg...)
 	cmd := p.Command(wine, arg...)
-	_, err := os.Stat(wine)
+	_, err := os.Stat(cmd.Path)
 
 	if (cmd.Err != nil && errors.Is(cmd.Err, exec.ErrNotFound)) ||
 		errors.Is(err, os.ErrNotExist) {
