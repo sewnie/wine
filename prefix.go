@@ -51,3 +51,13 @@ func (p *Prefix) IsProton() bool {
 	_, err := os.Stat(filepath.Join(p.Root, "proton"))
 	return err == nil
 }
+
+func (p *Prefix) bin(prog string) string {
+	if p.IsProton() {
+		return filepath.Join(p.Root, "files", "bin", prog)
+	} else if p.Root != "" {
+		return filepath.Join(p.Root, "bin", prog)
+	}
+
+	return prog
+}

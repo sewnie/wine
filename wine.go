@@ -24,17 +24,13 @@ var (
 //
 // [UMU launcher]: https://github.com/Open-Wine-Components/umu-launcher
 func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
-	wine := "wine64"
+	wine := p.bin("wine64")
 
-	if p.Root != "" && p.IsProton() {
-		wine = filepath.Join(p.Root, "files", "bin", "wine64")
-
+	if p.IsProton() {
 		umu, err := exec.LookPath("umu-run")
 		if err == nil {
 			wine = umu
 		}
-	} else if p.Root != "" {
-		wine = filepath.Join(p.Root, "bin", "wine64")
 	}
 
 	arg = append([]string{exe}, arg...)
