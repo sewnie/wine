@@ -1,5 +1,7 @@
 package wine
 
+import "os/exec"
+
 const (
 	ServerDebug      = "--debug"
 	ServerForeground = "--foreground"
@@ -18,18 +20,26 @@ const (
 	BootUpdate     = "--update"
 )
 
-// Tricks returns a [Cmd] for wineserver.
-func (p *Prefix) Server(args ...string) *Cmd {
-	return p.Command("wineserver", args...)
+// Server runs wineserver with the given commands.
+func (p *Prefix) Server(args ...string) error {
+	err := p.Command("wineserver", args...).Run()
+	if err == nil {
+		return nil
+	}
+	if exit, ok := err.(*exec.ExitError); ok && exit.ExitCode() == 1 {
+		// if with ServerKill, already killed
+		return nil
+	}
+	return err
 }
 
-// Tricks returns a [Cmd] for wineboot.
+// Boot returns a [Cmd] for wineboot.
 func (p *Prefix) Boot(args ...string) *Cmd {
 	return p.Wine("wineboot", args...)
 }
 
-// Kill returns a [Cmd] for killing the Wineprefix.
-func (p *Prefix) Kill() *Cmd {
+// Kill kills the Wineprefix.
+func (p *Prefix) Kill() error {
 	return p.Server(ServerKill)
 }
 
