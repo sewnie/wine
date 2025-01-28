@@ -2,7 +2,9 @@ package wine
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -11,6 +13,10 @@ import (
 // RegistryType is the type of registry that the wine 'reg' program
 // can accept.
 type RegistryType string
+
+var (
+	ErrRegistry = errors.New("registry error")
+)
 
 const (
 	REG_SZ        RegistryType = "REG_SZ"
@@ -35,13 +41,30 @@ type RegistryQuerySubkey struct {
 	Value string
 }
 
+func (p *Prefix) registry(args ...string) error {
+	b, err := p.Wine("reg", args...).Output()
+	if err == nil {
+		return nil
+	}
+	lines := bytes.Split(b, []byte("\n"))
+	if len(lines) < 1 {
+		return err
+	}
+
+	out := lines[len(lines)-1]
+	if bytes.Contains(out, []byte("successfully")) {
+		return nil
+	}
+	return fmt.Errorf("%w: %s", out)
+}
+
 // RegistryAdd adds a new registry key to the Wineprefix with the named key, value, type, and data.
 func (p *Prefix) RegistryAdd(key, value string, rtype RegistryType, data string) error {
 	if key == "" {
 		return errors.New("no registry key given")
 	}
 
-	return p.Wine("reg", "add", key, "/v", value, "/t", string(rtype), "/d", data, "/f").Run()
+	return p.registry("add", key, "/v", value, "/t", string(rtype), "/d", data, "/f")
 }
 
 // RegistryDelete deletes a registry key of the named key and value to be removed
@@ -51,7 +74,7 @@ func (p *Prefix) RegistryDelete(key, value string) error {
 		return errors.New("no registry key given")
 	}
 
-	return p.Wine("reg", "delete", key, "/v", value, "/f").Run()
+	return p.registry("delete", key, "/v", value, "/f")
 }
 
 // RegistryImport imports keys, values and data from a given registry file data into the
@@ -64,7 +87,7 @@ func (p *Prefix) RegistryImport(data string) error {
 	defer os.Remove(f.Name())
 	f.WriteString(data)
 
-	return p.Wine("reg", "import", f.Name()).Run()
+	return p.registry("import", f.Name())
 }
 
 // RegistryQuery queries and returns all subkeys of the registry key within
