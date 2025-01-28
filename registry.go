@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -42,20 +43,27 @@ type RegistryQuerySubkey struct {
 }
 
 func (p *Prefix) registry(args ...string) error {
-	b, err := p.Wine("reg", args...).Output()
-	if err == nil {
-		return nil
-	}
-	lines := bytes.Split(b, []byte("\n"))
-	if len(lines) < 1 {
+	cmd := p.Wine("reg", args...)
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	out, _ := cmd.StdoutPipe()
+	if err := cmd.Start(); err != nil {
 		return err
 	}
 
-	out := lines[len(lines)-1]
-	if bytes.Contains(out, []byte("successfully")) {
+	b, _ := io.ReadAll(out)
+	err := cmd.Wait()
+
+	lines := bytes.Split(b, []byte("\n"))
+	if len(b) < 1 || len(lines) != 2 {
+		return err
+	}
+
+	ret := lines[0][:len(lines[0])-1]
+	if bytes.Contains(ret, []byte("successfully")) {
 		return nil
 	}
-	return fmt.Errorf("%w: %s", out)
+	return fmt.Errorf("%w: %s", ErrRegistry, string(ret))
 }
 
 // RegistryAdd adds a new registry key to the Wineprefix with the named key, value, type, and data.
@@ -141,5 +149,6 @@ func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
 }
 
 func (p *Prefix) SetDPI(dpi int) error {
-	return p.RegistryAdd("HKEY_CURRENT_USER\\Control Panel\\Desktop", "LogPixels", REG_DWORD, strconv.Itoa(dpi))
+	return p.RegistryAdd(`HKEY_CURRENT_USER\Control Panel\Desktop`,
+		"LogPixels", REG_DWORD, strconv.Itoa(dpi))
 }
