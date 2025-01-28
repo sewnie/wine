@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -114,4 +115,8 @@ func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
 	}
 
 	return q, nil
+}
+
+func (p *Prefix) SetDPI(dpi int) error {
+	return p.RegistryAdd("HKEY_CURRENT_USER\\Control Panel\\Desktop", "LogPixels", REG_DWORD, strconv.Itoa(dpi))
 }

@@ -56,21 +56,6 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	return cmd
 }
 
-// Kill kills the Wineprefix's processes.
-func (p *Prefix) Kill() error {
-	return p.Wine("wineserver", "-k").Run()
-}
-
-// Init preforms initialization for first Wine instance.
-func (p *Prefix) Init() error {
-	return p.Wine("wineboot", "-i").Run()
-}
-
-// Update updates the Wineprefix directory.
-func (p *Prefix) Update() error {
-	return p.Wine("wineboot", "-u").Run()
-}
-
 // Version returns the Wineprefix's Wine version.
 func (p *Prefix) Version() string {
 	cmd := p.Wine("--version")
