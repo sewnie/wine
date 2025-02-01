@@ -38,6 +38,18 @@ func (p *Prefix) Command(name string, arg ...string) *Cmd {
 	}
 }
 
+// Headless makes the current command and removes all window-related variables.
+//
+// Useful when chaining, and when a command doesn't necessarily need a window.
+func (c *Cmd) Headless() *Cmd {
+	c.Env = append(c.Environ(),
+		"DISPLAY=",
+		"WAYLAND_DISPLAY=",
+		"WINEDEBUG=fixme-all,-winediag,-systray,-ole,-winediag,-ntoskrnl",
+	)
+	return c
+}
+
 // Refer to [exec.Cmd.Run].
 func (c *Cmd) Run() error {
 	if err := c.Start(); err != nil {
