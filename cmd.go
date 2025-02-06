@@ -38,7 +38,7 @@ func (p *Prefix) Command(name string, arg ...string) *Cmd {
 	}
 }
 
-// Headless makes the current command and removes all window-related variables.
+// Headless removes all window-related variables within the command.
 //
 // Useful when chaining, and when a command doesn't necessarily need a window.
 func (c *Cmd) Headless() *Cmd {
@@ -47,6 +47,14 @@ func (c *Cmd) Headless() *Cmd {
 		"WAYLAND_DISPLAY=",
 		"WINEDEBUG=fixme-all,-winediag,-systray,-ole,-winediag,-ntoskrnl",
 	)
+	return c
+}
+
+// Quiet sets the command output to nil, used in contexts where errors
+// are not to be expected.
+func (c *Cmd) Quiet() *Cmd {
+	c.Stderr = nil
+	c.Stdout = nil
 	return c
 }
 
