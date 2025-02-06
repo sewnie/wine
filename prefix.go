@@ -55,7 +55,7 @@ func (p *Prefix) IsProton() bool {
 // IsSetup determines if the prefix exists and has been setup.
 func (p *Prefix) Exists() bool {
 	_, err := os.Stat(filepath.Join(p.dir, "drive_c", "windows"))
-	return err != nil
+	return err == nil
 }
 
 func (p *Prefix) bin(prog string) string {
