@@ -22,7 +22,7 @@ const (
 
 // Server runs wineserver with the given commands.
 func (p *Prefix) Server(args ...string) error {
-	err := p.Command("wineserver", args...).Run()
+	err := p.Command(p.bin("wineserver"), args...).Run()
 	if err == nil {
 		return nil
 	}
