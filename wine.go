@@ -62,8 +62,8 @@ func (p *Prefix) Version() string {
 	cmd.Stdout = nil // required for Output()
 	cmd.Stderr = nil
 
-	ver, _ := cmd.Output()
-	if len(ver) < 0 {
+	ver, err := cmd.Output()
+	if len(ver) < 0 || err != nil {
 		return "unknown"
 	}
 
