@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
+	"slices"
 )
 
 // Cmd is is a struct wrapper that overrides methods to better interact
@@ -16,7 +17,7 @@ import (
 type Cmd struct {
 	*exec.Cmd
 
-	prefix string
+	prefix *Prefix
 }
 
 // Command returns the Cmd struct to execute the named program
@@ -34,16 +35,11 @@ func (p *Prefix) Command(name string, arg ...string) *Cmd {
 
 	return &Cmd{
 		Cmd:    cmd,
-		prefix: p.dir,
+		prefix: p,
 	}
 }
 
 // Headless removes all window-related variables within the command.
-//
-// Be careful when using this feature, since if the wineserver is not
-// already started, this command will start the wineserver also in
-// headless mode. To ensure the wineserver is already started. Alternatively,
-// the Wineprefix may be killed right after initialization.
 //
 // Useful when chaining, and when a command doesn't necessarily need a window.
 func (c *Cmd) Headless() *Cmd {
@@ -83,8 +79,8 @@ func (c *Cmd) Start() error {
 
 	// Always ensure its created, wine will complain if the root
 	// directory doesnt exist
-	if c.prefix != "" {
-		c.Err = os.MkdirAll(c.prefix, 0o755)
+	if c.prefix.dir != "" {
+		c.Err = os.MkdirAll(c.prefix.dir, 0o755)
 	}
 
 	// There was a long discussion in #winehq regarding starting wine from
@@ -112,4 +108,19 @@ func (c *Cmd) Start() error {
 	}
 
 	return c.Cmd.Start()
+}
+
+// Refer to [exec.Cmd.Wait].
+func (c *Cmd) Wait() error {
+	err := c.Cmd.Wait()
+
+	// Restart the Wineprefix since the new instance will become Headless
+	// as a result of wineboot being Headless.
+	if len(c.Args) > 1 && c.Args[1] == "wineboot" &&
+		slices.Contains(c.Env, "DISPLAY=") {
+		_ = c.prefix.Kill()
+		_ = c.prefix.Start()
+	}
+
+	return err
 }
