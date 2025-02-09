@@ -40,6 +40,11 @@ func (p *Prefix) Command(name string, arg ...string) *Cmd {
 
 // Headless removes all window-related variables within the command.
 //
+// Be careful when using this feature, since if the wineserver is not
+// already started, this command will start the wineserver also in
+// headless mode. To ensure the wineserver is already started. Alternatively,
+// the Wineprefix may be killed right after initialization.
+//
 // Useful when chaining, and when a command doesn't necessarily need a window.
 func (c *Cmd) Headless() *Cmd {
 	c.Env = append(c.Environ(),

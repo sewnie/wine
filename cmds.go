@@ -26,8 +26,9 @@ func (p *Prefix) Server(args ...string) error {
 	if err == nil {
 		return nil
 	}
-	if exit, ok := err.(*exec.ExitError); ok && exit.ExitCode() == 1 {
-		// if with ServerKill, already killed
+	// 1: server already killed (ServerKill)
+	// 2: server already started
+	if exit, ok := err.(*exec.ExitError); ok && exit.ExitCode() < 3 {
 		return nil
 	}
 	return err
@@ -36,6 +37,14 @@ func (p *Prefix) Server(args ...string) error {
 // Boot returns a [Cmd] for wineboot.
 func (p *Prefix) Boot(args ...string) *Cmd {
 	return p.Wine("wineboot", args...)
+}
+
+// Start ensures the Wineprefix's server is running.
+//
+// To have more control over the persistence of the server,
+// use p.Server(ServerPersistent, "2").
+func (p *Prefix) Start() error {
+	return p.Server()
 }
 
 // Kill kills the Wineprefix.
