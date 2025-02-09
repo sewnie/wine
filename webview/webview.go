@@ -17,10 +17,10 @@ var ErrInstallerNotFound = errors.New("webview installer target not found in res
 
 // Install runs the given WebView installer file within the Wineprefix
 // with the appropiate arguments.
-func Install(pfx *wine.Prefix, name string) error {
+func Install(pfx *wine.Prefix, name string) *wine.Cmd {
 	return pfx.Wine(name,
 		"--msedgewebview", "--do-not-launch-msedge", "--system-level",
-	).Run()
+	)
 }
 
 // Extract uses the given ReaderAt, a file source of the Download's
