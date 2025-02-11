@@ -16,23 +16,9 @@ var (
 // Wine returns a appropiately selected Wine for the Wineprefix.
 //
 // The Wine executable used is a path to the system or Prefix's Root's 'wine64'
-// if present. an attempt to resolve for a [UMU Launcher] will be performed.
-//
-// UMU launcher supports downloading its own UMU-Proton if a proton
-// path is not given, but for user preferences, the check will
-// only be preferred if a Proton path was set.
-//
-// [UMU launcher]: https://github.com/Open-Wine-Components/umu-launcher
+// if present.
 func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	wine := p.bin("wine64")
-
-	if p.IsProton() {
-		umu, err := exec.LookPath("umu-run")
-		if err == nil {
-			wine = umu
-		}
-	}
-
 	arg = append([]string{exe}, arg...)
 	cmd := p.Command(wine, arg...)
 	_, err := os.Stat(cmd.Path)
@@ -47,10 +33,6 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	// Wine requires a absolute path for the Wineprefix.
 	if p.dir != "" && !filepath.IsAbs(p.dir) {
 		cmd.Err = ErrPrefixNotAbs
-	}
-
-	if cmd.Args[0] == "umu-run" {
-		cmd.Env = append(cmd.Environ(), "GAMEID=0", "PROTONPATH="+p.Root, "PROTON_VERB=run")
 	}
 
 	return cmd

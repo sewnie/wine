@@ -64,15 +64,6 @@ func (p *Prefix) Update() *Cmd {
 
 // Tricks returns a [Cmd] for winetricks.
 func (p *Prefix) Tricks() *Cmd {
-	if p.IsProton() {
-		// umu-run [winetricks [ARG...]]
-		cmd := p.Wine("winetricks")
-		if cmd.Args[0] == "umu-run" {
-			return cmd
-		}
-		// fallback to regular winetricks
-	}
-
 	cmd := p.Command("winetricks")
 	cmd.Env = append(cmd.Environ(),
 		"WINE="+p.bin("wine64"),
