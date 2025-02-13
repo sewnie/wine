@@ -2,7 +2,6 @@ package wine
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -14,10 +13,6 @@ import (
 // RegistryType is the type of registry that the wine 'reg' program
 // can accept.
 type RegistryType string
-
-var (
-	ErrRegistry = errors.New("registry error")
-)
 
 const (
 	REG_SZ        RegistryType = "REG_SZ"
@@ -53,17 +48,17 @@ func (p *Prefix) registry(args ...string) error {
 
 	b, _ := io.ReadAll(out)
 	err := cmd.Wait()
+	if err == nil {
+		return nil
+	}
 
-	lines := bytes.Split(b, []byte("\n"))
-	if len(b) < 1 || len(lines) != 2 {
+	lines := strings.Split(string(b), "\n")
+	if len(lines) != 2 || !strings.HasPrefix(lines[0], "reg:") {
 		return err
 	}
 
-	ret := lines[0][:len(lines[0])-1]
-	if bytes.Contains(ret, []byte("successfully")) {
-		return nil
-	}
-	return fmt.Errorf("%w: %s", ErrRegistry, string(ret))
+	// Remove the "reg:" prefix and the carriage return at the end
+	return fmt.Errorf("registry error: %s", lines[0][5:len(lines[0])-1])
 }
 
 // RegistryAdd adds a new registry key to the Wineprefix with the named key, value, type, and data.
