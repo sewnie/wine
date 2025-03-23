@@ -16,12 +16,16 @@ var (
 // Wine returns a appropiately selected Wine for the Wineprefix.
 //
 // The Wine executable used is a path to the system or Prefix's Root's 'wine64'
-// if present.
+// or 'wine', in preference order, if present.
 func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	wine := p.bin("wine64")
+	_, err := os.Stat(wine)
+	if err != nil {
+		wine = p.bin("wine")
+	}
+
 	arg = append([]string{exe}, arg...)
 	cmd := p.Command(wine, arg...)
-	_, err := os.Stat(cmd.Path)
 
 	if (cmd.Err != nil && errors.Is(cmd.Err, exec.ErrNotFound)) ||
 		errors.Is(err, os.ErrNotExist) {
