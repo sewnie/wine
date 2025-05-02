@@ -3,34 +3,21 @@ package wine
 
 import (
 	"errors"
-	"os"
 	"os/exec"
 	"path/filepath"
 )
 
 var (
-	ErrWineNotFound = errors.New("wine64 not found in $PATH or wineroot")
+	ErrWineNotFound = errors.New("wine not found in $PATH or wineroot")
 	ErrPrefixNotAbs = errors.New("prefix directory is not an absolute path")
 )
 
-// Wine returns a appropiately selected Wine for the Wineprefix.
-//
-// The Wine executable used is a path to the system or Prefix's Root's 'wine64'
-// or 'wine', in preference order, if present.
+// Wine returns a Cmd for usage of calling WINE.
 func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
-	wine := p.bin("wine64")
-	_, err := os.Stat(wine)
-	if err != nil {
-		wine = p.bin("wine")
-	}
-
+	wine, err := exec.LookPath(p.bin("wine"))
 	arg = append([]string{exe}, arg...)
 	cmd := p.Command(wine, arg...)
-
-	if (cmd.Err != nil && errors.Is(cmd.Err, exec.ErrNotFound)) ||
-		errors.Is(err, os.ErrNotExist) {
-		cmd.Err = ErrWineNotFound
-	} else if cmd.Err == nil && err != nil {
+	if err != nil {
 		cmd.Err = err
 	}
 

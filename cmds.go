@@ -66,7 +66,7 @@ func (p *Prefix) Update() *Cmd {
 func (p *Prefix) Tricks() *Cmd {
 	cmd := p.Command("winetricks")
 	cmd.Env = append(cmd.Environ(),
-		"WINE="+p.bin("wine64"),
+		"WINE="+p.bin("wine"),
 		"WINESERVER="+p.bin("wineserver"),
 	)
 
