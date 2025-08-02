@@ -61,14 +61,3 @@ func (p *Prefix) Init() *Cmd {
 func (p *Prefix) Update() *Cmd {
 	return p.Boot(BootUpdate).Headless()
 }
-
-// Tricks returns a [Cmd] for winetricks.
-func (p *Prefix) Tricks() *Cmd {
-	cmd := p.Command("winetricks")
-	cmd.Env = append(cmd.Environ(),
-		"WINE="+p.bin("wine"),
-		"WINESERVER="+p.bin("wineserver"),
-	)
-
-	return cmd
-}
