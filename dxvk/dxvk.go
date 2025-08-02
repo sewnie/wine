@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/apprehensions/wine"
+	"github.com/sewnie/wine"
 )
 
 // To make DXVK usable by Wine applications, it is reccomended to use either

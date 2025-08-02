@@ -3,7 +3,7 @@ package dxvk
 import (
 	"slices"
 
-	"github.com/apprehensions/wine"
+	"github.com/sewnie/wine"
 )
 
 var dllOverridesKey = `HKEY_CURRENT_USER\Software\Wine\DllOverrides`

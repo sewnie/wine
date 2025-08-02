@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/apprehensions/wine"
+	"github.com/sewnie/wine"
 	"github.com/folbricht/pefile" // Cheers to a 5 year old library!
 )
 
