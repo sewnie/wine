@@ -9,12 +9,12 @@ import (
 	"strings"
 
 	"github.com/sewnie/wine"
-	"github.com/folbricht/pefile" // Cheers to a 5 year old library!
+	"github.com/sewnie/wine/peutil"
 )
 
 var (
 	ErrResourceNotFound  = errors.New("webview installer resource not found")
-	ErrInstallerNotFound = errors.New("webview installer target not found in resource")
+	ErrInstallerNotFound = errors.New("webview installer installer not found")
 )
 
 // Install runs the given WebView installer file within the Wineprefix
@@ -28,13 +28,13 @@ func Install(pfx *wine.Prefix, name string) *wine.Cmd {
 // Extract uses the given ReaderAt, a file source of the Download's
 // URL and extracts the WebView installer to the given dst.
 func (d *Download) Extract(r io.ReaderAt, dst io.Writer) error {
-	inst, err := pefile.New(r)
+	f, err := peutil.New(r)
 	if err != nil {
 		return err
 	}
-	defer inst.Close()
+	defer f.Close()
 
-	rs, err := inst.GetResources()
+	rs, err := f.Resources()
 	if err != nil {
 		return err
 	}
@@ -44,13 +44,13 @@ func (d *Download) Extract(r io.ReaderAt, dst io.Writer) error {
 			continue
 		}
 
-		return d.resource(&r, dst)
+		return d.extractInstaller(&r, dst)
 	}
 
 	return ErrResourceNotFound
 }
 
-func (d *Download) resource(rsrc *pefile.Resource, dst io.Writer) error {
+func (d *Download) extractInstaller(rsrc *peutil.Resource, dst io.Writer) error {
 	r := bytes.NewReader(rsrc.Data)
 	tr := tar.NewReader(r)
 
