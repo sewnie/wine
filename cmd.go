@@ -7,8 +7,11 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 )
+
+var ErrPrefixNotAbs = errors.New("prefix directory is not an absolute path")
 
 // Cmd is is a struct wrapper that overrides methods to better interact
 // with a Wineprefix.
@@ -31,6 +34,11 @@ func (p *Prefix) Command(name string, arg ...string) *Cmd {
 	cmd.Stdout = p.Stdout
 	if p.dir != "" {
 		cmd.Env = append(cmd.Environ(), "WINEPREFIX="+p.dir)
+	}
+
+	// Wine requires a absolute path for the Wineprefix.
+	if p.dir != "" && !filepath.IsAbs(p.dir) {
+		cmd.Err = ErrPrefixNotAbs
 	}
 
 	return &Cmd{
