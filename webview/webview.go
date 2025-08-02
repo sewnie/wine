@@ -12,8 +12,10 @@ import (
 	"github.com/folbricht/pefile" // Cheers to a 5 year old library!
 )
 
-var ErrResourceNotFound = errors.New("webview installer resource not found")
-var ErrInstallerNotFound = errors.New("webview installer target not found in resource")
+var (
+	ErrResourceNotFound  = errors.New("webview installer resource not found")
+	ErrInstallerNotFound = errors.New("webview installer target not found in resource")
+)
 
 // Install runs the given WebView installer file within the Wineprefix
 // with the appropiate arguments.
