@@ -2,6 +2,7 @@ package wine
 
 import (
 	"bufio"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -94,10 +95,11 @@ func (p *Prefix) RegistryImport(data string) error {
 }
 
 // RegistryQuery queries and returns all subkeys of the registry key within
-// the Wineprefix.
+// the Wineprefix. The value parameter can be empty, if wanting to retrieving
+// all of the subkeys of the key.
 //
-// The value parameter can be empty, if wanting to retrieving all of the subkeys
-// of the key.
+// If a subkey was detected to be of REG_BINARY, it will automatically be decoded
+// as the value.
 func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
 	var q []RegistryQueryKey
 	var c *RegistryQueryKey
@@ -130,9 +132,17 @@ func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
 			}
 			c = &RegistryQueryKey{Key: reg[0]}
 		case 4:
-			c.Subkeys = append(c.Subkeys, RegistryQuerySubkey{
+			sk := RegistryQuerySubkey{
 				reg[1], RegistryType(reg[2]), reg[3],
-			})
+			}
+			if sk.Type == REG_BINARY {
+				v, err := hex.DecodeString(sk.Value)
+				if err != nil {
+					return nil, fmt.Errorf("subkey %s: %w", sk.Name, err)
+				}
+				sk.Value = string(v)
+			}
+			c.Subkeys = append(c.Subkeys, sk)
 		}
 	}
 
