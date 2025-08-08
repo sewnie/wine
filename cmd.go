@@ -29,7 +29,12 @@ type Cmd struct {
 //
 // For further information, refer to [exec.Command].
 func (p *Prefix) Command(name string, arg ...string) *Cmd {
-	cmd := exec.Command(name, arg...)
+	var cmd *exec.Cmd
+	if p.ctx != nil {
+		cmd = exec.CommandContext(p.ctx, name, arg...)
+	} else {
+		cmd = exec.Command(name, arg...)
+	}
 	cmd.Stderr = p.Stderr
 	cmd.Stdout = p.Stdout
 	if p.dir != "" {

@@ -1,6 +1,7 @@
 package wine
 
 import (
+	"context"
 	"io"
 	"os"
 	"path/filepath"
@@ -11,6 +12,8 @@ import (
 type Prefix struct {
 	// Path to a Wine or Proton installation.
 	Root string
+
+	ctx context.Context
 
 	// Stdout and Stderr specify the descendant Prefix's Command
 	// Stdout and Stderr. This is mostly reserved for logging purposes.
@@ -29,6 +32,18 @@ type Prefix struct {
 func New(dir string, root string) *Prefix {
 	return &Prefix{
 		Root:   root,
+		Stderr: os.Stderr,
+		Stdout: os.Stdout,
+		dir:    dir,
+	}
+}
+
+// NewContext is like [New] but adds a Context, to be used in all
+// subsequent [Commmand]s made by the Prefix.
+func NewContext(ctx context.Context, dir string, root string) *Prefix {
+	return &Prefix{
+		Root:   root,
+		ctx:    ctx,
 		Stderr: os.Stderr,
 		Stdout: os.Stdout,
 		dir:    dir,
