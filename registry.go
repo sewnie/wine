@@ -167,13 +167,12 @@ func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
 			}
 			c = &RegistryQueryKey{Key: reg[0]}
 		case 4:
-			fmt.Println(reg)
 			value, err := parseRegistryData(reg[2], reg[3])
 			if err != nil {
 				return nil, fmt.Errorf("subkey %s: %w", reg[1], err)
 			}
 			c.Subkeys = append(c.Subkeys, RegistryQuerySubkey{
-				Name: reg[1],
+				Name:  reg[1],
 				Value: value,
 			})
 		}
