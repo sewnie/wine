@@ -56,9 +56,9 @@ func parseRegistryData(dataType string, data string) (any, error) {
 	case "REG_SZ", "REG_MULTI_SZ":
 		return data, nil
 	case "REG_DWORD":
-		return strconv.ParseUint(data, 10, 32)
+		return strconv.ParseUint(data, 16, 32)
 	case "REG_QWORD":
-		return strconv.ParseUint(data, 10, 64)
+		return strconv.ParseUint(data, 16, 64)
 	case "REG_BINARY":
 		return hex.DecodeString(data)
 	case "REG_NONE":
@@ -167,6 +167,7 @@ func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
 			}
 			c = &RegistryQueryKey{Key: reg[0]}
 		case 4:
+			fmt.Println(reg)
 			value, err := parseRegistryData(reg[2], reg[3])
 			if err != nil {
 				return nil, fmt.Errorf("subkey %s: %w", reg[1], err)
