@@ -17,10 +17,10 @@ func Overriden(pfx *wine.Prefix) (bool, error) {
 	}
 
 	overrides := []wine.RegistryQuerySubkey{
-		{"d3d10core", wine.REG_SZ, "builtin"},
-		{"d3d11", wine.REG_SZ, "builtin"},
-		{"d3d9", wine.REG_SZ, "builtin"},
-		{"dxgi", wine.REG_SZ, "builtin"},
+		{"d3d10core", "builtin"},
+		{"d3d11", "builtin"},
+		{"d3d9", "builtin"},
+		{"dxgi", "builtin"},
 	}
 
 	if len(q) == 0 {

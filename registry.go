@@ -11,20 +11,6 @@ import (
 	"strings"
 )
 
-// RegistryType is the type of registry that the wine 'reg' program
-// can accept.
-type RegistryType string
-
-const (
-	REG_SZ        RegistryType = "REG_SZ"
-	REG_MULTI_SZ  RegistryType = "REG_MULTI_SZ"
-	REG_EXPAND_SZ RegistryType = "REG_EXPAND_SZ"
-	REG_DWORD     RegistryType = "REG_DWORD"
-	REG_QWORD     RegistryType = "REG_QWORD"
-	REG_BINARY    RegistryType = "REG_BINARY"
-	REG_NONE      RegistryType = "REG_NONE"
-)
-
 // RegistryQueryKey represents a queried registry key.
 type RegistryQueryKey struct {
 	Key     string
@@ -33,9 +19,52 @@ type RegistryQueryKey struct {
 
 // RegistryQuerySubkey represents a subkey of a [RegistryQueryKey].
 type RegistryQuerySubkey struct {
-	Name  string
-	Type  RegistryType
-	Value string
+	Name string
+
+	// REG_SZ        = string
+	// REG_MULTI_SZ  = []string
+	// REG_DWORD     = uint32, uint
+	// REG_QWORD     = uint64
+	// REG_BINARY    = []byte
+	// REG_NONE      = byte(0)
+	Value any
+}
+
+func formatRegistryData(data any) (string, string) {
+	switch d := data.(type) {
+	case string:
+		return "REG_SZ", d
+	case []string:
+		return "REG_MULTI_SZ", strings.Join([]string(d), "\x00") + "\x00\x00"
+	case uint:
+		return "REG_DWORD", strconv.FormatUint(uint64(d), 10)
+	case uint32:
+		return "REG_DWORD", strconv.FormatUint(uint64(d), 10)
+	case uint64:
+		return "REG_QWORD", strconv.FormatUint(uint64(d), 10)
+	case []byte:
+		return "REG_BINARY", hex.EncodeToString(d)
+	case byte:
+		return "REG_NONE", "" // value ignored by reg
+	default:
+		return "", ""
+	}
+}
+
+func parseRegistryData(dataType string, data string) (any, error) {
+	switch dataType {
+	case "REG_SZ", "REG_MULTI_SZ":
+		return data, nil
+	case "REG_DWORD":
+		return strconv.ParseUint(data, 10, 32)
+	case "REG_QWORD":
+		return strconv.ParseUint(data, 10, 64)
+	case "REG_BINARY":
+		return hex.DecodeString(data)
+	case "REG_NONE":
+		return byte(0), nil
+	}
+	return nil, fmt.Errorf("unhandled type %s", dataType)
 }
 
 func (p *Prefix) registry(args ...string) error {
@@ -63,12 +92,19 @@ func (p *Prefix) registry(args ...string) error {
 }
 
 // RegistryAdd adds a new registry key to the Wineprefix with the named key, value, type, and data.
-func (p *Prefix) RegistryAdd(key, value string, rtype RegistryType, data string) error {
+//
+// See [RegistryQuerySubkey] for more details about the type of data.
+func (p *Prefix) RegistryAdd(key string, value string, data any) error {
 	if key == "" {
 		return errors.New("no registry key given")
 	}
 
-	return p.registry("add", key, "/v", value, "/t", string(rtype), "/d", data, "/f")
+	t, d := formatRegistryData(data)
+	if t == "" {
+		return errors.New("unhandled type var")
+	}
+
+	return p.registry("add", key, "/t", t, "/v", value, "/d", d, "/f")
 }
 
 // RegistryDelete deletes a registry key of the named key and value to be removed
@@ -98,11 +134,9 @@ func (p *Prefix) RegistryImport(data string) error {
 // the Wineprefix. The value parameter can be empty, if wanting to retrieving
 // all of the subkeys of the key.
 //
-// If a subkey was detected to be of REG_BINARY, it will automatically be decoded
-// as the value.
+// See [RegistryQuerySubkey] for more details about the type of data returned.
 func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
 	var q []RegistryQueryKey
-	var c *RegistryQueryKey
 
 	args := []string{"query", key, "/s"}
 	if value != "" {
@@ -120,6 +154,7 @@ func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
 		return nil, err
 	}
 
+	var c *RegistryQueryKey
 	scanner := bufio.NewScanner(out)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -132,17 +167,14 @@ func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
 			}
 			c = &RegistryQueryKey{Key: reg[0]}
 		case 4:
-			sk := RegistryQuerySubkey{
-				reg[1], RegistryType(reg[2]), reg[3],
+			value, err := parseRegistryData(reg[2], reg[3])
+			if err != nil {
+				return nil, fmt.Errorf("subkey %s: %w", reg[1], err)
 			}
-			if sk.Type == REG_BINARY {
-				v, err := hex.DecodeString(sk.Value)
-				if err != nil {
-					return nil, fmt.Errorf("subkey %s: %w", sk.Name, err)
-				}
-				sk.Value = string(v)
-			}
-			c.Subkeys = append(c.Subkeys, sk)
+			c.Subkeys = append(c.Subkeys, RegistryQuerySubkey{
+				Name: reg[1],
+				Value: value,
+			})
 		}
 	}
 
@@ -153,7 +185,6 @@ func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
 	return q, nil
 }
 
-func (p *Prefix) SetDPI(dpi int) error {
-	return p.RegistryAdd(`HKEY_CURRENT_USER\Control Panel\Desktop`,
-		"LogPixels", REG_DWORD, strconv.Itoa(dpi))
+func (p *Prefix) SetDPI(dpi uint) error {
+	return p.RegistryAdd(`HKEY_CURRENT_USER\Control Panel\Desktop`, "LogPixels", dpi)
 }
