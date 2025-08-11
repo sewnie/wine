@@ -1,10 +1,16 @@
 // The wine package helps manage a Wineprefix and run Wine.
 package wine
 
+import "os/exec"
+
 // Wine returns a Cmd for usage of calling WINE.
 func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
+	wow := p.bin("wine")
 	arg = append([]string{exe}, arg...)
-	cmd := p.Command(p.bin("wine"), arg...)
+	if wine, err := exec.LookPath(p.bin("wine64")); err == nil  {
+		wow = wine // prefer wine64 only if possible
+	}
+	cmd := p.Command(wow, arg...)
 	return cmd
 }
 
