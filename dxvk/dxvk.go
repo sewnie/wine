@@ -13,11 +13,28 @@ import (
 	"github.com/sewnie/wine"
 )
 
-// To make DXVK usable by Wine applications, it is reccomended to use either
-// the WINEDLLOVERRIDES='d3d9,d3d10core,d3d11,dxgi=n,b' variable or
-// [AddOverrides] for a more permanent setting.
-
 const Repo = "https://github.com/doitsujin/dxvk"
+
+// To make DXVK usable by Wine applications, it is reccomended to use either
+// [Variable] for runtime setting or [AddOverrides] for a more permanent setting.
+//
+// In the DLL overrides, setting the value to native,builtin allows Wine
+// to use DXVK if available. If the DVXK DLLs are installed in the prefix,
+// and DXVK is not to be used, then the value should be "builtin" instead;
+// this is only supported in the environment variable application.
+
+// Variable returns a Wine DLL overrides value,
+// with whether to use DXVK DLLs or not. This should be appended
+// to a final WINEDLLOVERRIDES value.
+func EnvOverride(enabled bool) string {
+	overrides := "d3d9,d3d10core,d3d11,dxgi="
+	if enabled {
+		overrides += "native"
+	} else {
+		overrides += "builtin"
+	}
+	return overrides
+}
 
 // Restore removes the DXVK overridden DLLs from the given wineprefix, then
 // restores Wine DLLs.
