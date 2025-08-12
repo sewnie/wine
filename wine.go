@@ -10,8 +10,7 @@ func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	if wine, err := exec.LookPath(p.bin("wine64")); err == nil  {
 		wow = wine // prefer wine64 only if possible
 	}
-	cmd := p.Command(wow, arg...)
-	return cmd
+	return p.Command(wow, arg...)
 }
 
 // Version returns the Wineprefix's Wine version.

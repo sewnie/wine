@@ -36,6 +36,13 @@ func (p *Prefix) Command(name string, arg ...string) *Cmd {
 		cmd.Env = append(cmd.Environ(), "WINEPREFIX="+p.dir)
 	}
 
+	// Set cmd.Err even if the path is absolute
+	if filepath.Base(name) != name {
+		if _, err := exec.LookPath(cmd.Path); err != nil {
+			cmd.Err = err
+		}
+	}
+
 	// Wine requires a absolute path for the Wineprefix.
 	if p.dir != "" && !filepath.IsAbs(p.dir) {
 		cmd.Err = ErrPrefixNotAbs
