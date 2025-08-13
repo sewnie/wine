@@ -7,7 +7,7 @@ import "os/exec"
 func (p *Prefix) Wine(exe string, arg ...string) *Cmd {
 	wow := p.bin("wine")
 	arg = append([]string{exe}, arg...)
-	if wine, err := exec.LookPath(p.bin("wine64")); err == nil  {
+	if wine, err := exec.LookPath(p.bin("wine64")); err == nil {
 		wow = wine // prefer wine64 only if possible
 	}
 	return p.Command(wow, arg...)

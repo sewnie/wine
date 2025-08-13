@@ -2,6 +2,7 @@ package wine
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -67,28 +68,32 @@ func parseRegistryData(dataType string, data string) (any, error) {
 	return nil, fmt.Errorf("unhandled type %s", dataType)
 }
 
-func (p *Prefix) registry(args ...string) error {
+func (p *Prefix) registry(args ...string) ([]byte, error) {
 	cmd := p.Wine("reg", args...)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	out, _ := cmd.StdoutPipe()
 	if err := cmd.Start(); err != nil {
-		return err
+		return nil, err
 	}
 
-	b, _ := io.ReadAll(out)
-	err := cmd.Wait()
+	b, err := io.ReadAll(out)
+	if err != nil {
+		return nil, err
+	}
+
+	err = cmd.Wait()
 	if err == nil {
-		return nil
+		return b, nil
 	}
 
 	lines := strings.Split(string(b), "\n")
 	if len(lines) != 2 || !strings.HasPrefix(lines[0], "reg:") {
-		return err
+		return nil, err
 	}
 
 	// Remove the "reg:" prefix and the carriage return at the end
-	return fmt.Errorf("registry error: %s", lines[0][5:len(lines[0])-1])
+	return nil, fmt.Errorf("registry error: %s", lines[0][5:len(lines[0])-1])
 }
 
 // RegistryAdd adds a new registry key to the Wineprefix with the named key, value, type, and data.
@@ -112,7 +117,10 @@ func (p *Prefix) RegistryAdd(key string, value string, data any) error {
 		args = append(args, "/ve")
 	}
 
-	return p.registry(args...)
+	if _, err := p.registry(args...); err != nil {
+		return err
+	}
+	return nil
 }
 
 // RegistryDelete deletes a registry key of the named key and value to be removed
@@ -128,7 +136,10 @@ func (p *Prefix) RegistryDelete(key, value string) error {
 		args = append(args, "/v", value)
 	}
 
-	return p.registry(args...)
+	if _, err := p.registry(args...); err != nil {
+		return err
+	}
+	return nil
 }
 
 // RegistryImport imports keys, values and data from a given registry file data into the
@@ -141,7 +152,10 @@ func (p *Prefix) RegistryImport(data string) error {
 	defer os.Remove(f.Name())
 	f.WriteString(data)
 
-	return p.registry("import", f.Name())
+	if _, err := p.registry("import", f.Name()); err != nil {
+		return err
+	}
+	return nil
 }
 
 // RegistryQuery queries and returns all subkeys of the registry key within
@@ -157,19 +171,13 @@ func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
 		args = append(args, "/v", value)
 	}
 
-	cmd := p.Wine("reg", args...)
-	cmd.Stdout = nil
-	out, err := cmd.StdoutPipe()
+	data, err := p.registry(args...)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-
 	var c *RegistryQueryKey
-	scanner := bufio.NewScanner(out)
+	scanner := bufio.NewScanner(bytes.NewReader(data))
 	for scanner.Scan() {
 		line := scanner.Text()
 		reg := strings.Split(line, "    ")
@@ -190,10 +198,6 @@ func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
 				Value: value,
 			})
 		}
-	}
-
-	if err := cmd.Wait(); err != nil {
-		return nil, err
 	}
 
 	return q, nil
