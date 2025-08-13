@@ -92,6 +92,7 @@ func (p *Prefix) registry(args ...string) error {
 }
 
 // RegistryAdd adds a new registry key to the Wineprefix with the named key, value, type, and data.
+// The value parameter can be empty, to modify the (Default) value.
 //
 // See [RegistryQuerySubkey] for more details about the type of data.
 func (p *Prefix) RegistryAdd(key string, value string, data any) error {
@@ -104,17 +105,30 @@ func (p *Prefix) RegistryAdd(key string, value string, data any) error {
 		return errors.New("unhandled type var")
 	}
 
-	return p.registry("add", key, "/t", t, "/v", value, "/d", d, "/f")
+	args := []string{"add", key, "/t", t, "/d", d, "/f"}
+	if value != "" {
+		args = append(args, "/v", value)
+	} else {
+		args = append(args, "/ve")
+	}
+
+	return p.registry(args...)
 }
 
 // RegistryDelete deletes a registry key of the named key and value to be removed
-// from the Wineprefix.
+// from the Wineprefix. The value parameter can be empty, if wanting to retrieving
+// delete the entire key.
 func (p *Prefix) RegistryDelete(key, value string) error {
 	if key == "" {
 		return errors.New("no registry key given")
 	}
 
-	return p.registry("delete", key, "/v", value, "/f")
+	args := []string{"delete", key, "/f"}
+	if value != "" {
+		args = append(args, "/v", value)
+	}
+
+	return p.registry(args...)
 }
 
 // RegistryImport imports keys, values and data from a given registry file data into the
