@@ -163,6 +163,8 @@ func (p *Prefix) RegistryImport(data string) error {
 // all of the subkeys of the key.
 //
 // See [RegistryQuerySubkey] for more details about the type of data returned.
+//
+// If the registry key is not found, nil will be returned.
 func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
 	var q []RegistryQueryKey
 
@@ -173,6 +175,9 @@ func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
 
 	data, err := p.registry(args...)
 	if err != nil {
+		if strings.Contains(err.Error(), "Unable to find the specified registry key") {
+			return nil, nil
+		}
 		return nil, err
 	}
 
