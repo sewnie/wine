@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -72,28 +71,16 @@ func (p *Prefix) registry(args ...string) ([]byte, error) {
 	cmd := p.Wine("reg", args...)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
-	out, _ := cmd.StdoutPipe()
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-
-	b, err := io.ReadAll(out)
+	b, err := cmd.Output()
 	if err != nil {
+		// wine reg(1) outputs error to stdout
+		if bytes.HasPrefix(b, []byte("reg: ")) {
+			return nil, fmt.Errorf("registry error: %s", string(b[5:len(b)-1]))
+		}
 		return nil, err
 	}
 
-	err = cmd.Wait()
-	if err == nil {
-		return b, nil
-	}
-
-	lines := strings.Split(string(b), "\n")
-	if len(lines) != 2 || !strings.HasPrefix(lines[0], "reg:") {
-		return nil, err
-	}
-
-	// Remove the "reg:" prefix and the carriage return at the end
-	return nil, fmt.Errorf("registry error: %s", lines[0][5:len(lines[0])-1])
+	return b, nil
 }
 
 // RegistryAdd adds a new registry key to the Wineprefix with the named key, value, type, and data.
