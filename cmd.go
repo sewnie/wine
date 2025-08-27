@@ -2,7 +2,6 @@ package wine
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -85,7 +84,7 @@ func (c *Cmd) Run() error {
 // Refer to [exec.Cmd.Start].
 func (c *Cmd) Start() error {
 	if c.Process != nil {
-		return errors.New("exec: already started")
+		return errors.New("already started")
 	}
 
 	if c.Err != nil {
@@ -98,31 +97,37 @@ func (c *Cmd) Start() error {
 		c.Err = os.MkdirAll(c.prefix.dir, 0o755)
 	}
 
-	// There was a long discussion in #winehq regarding starting wine from
-	// Go with os/exec when it's stderr and stdout was set to a file. This
-	// behavior causes wineserver to start alongside the process instead of
-	// the background, creating issues such as Wineserver waiting for processes
-	// alongside the executable - having timeout issues, etc.
-	// A stderr pipe will be made to mitigate this behavior when and if
-	// the prefix's stderr is non-nil or not os.Stderr.
-	if c.Err != nil && c.Stderr != nil && c.Stderr != os.Stderr {
-		pfxStderr := c.Stderr
+	// Go exec.Command does the same thing done here, but
+	// this works nicer with wineserver for an unknown reason,
+	// otherwise, wineserver will not fork.
+	if c.Stdout != nil && c.Stdout != os.Stdout {
+		c.Stdout = nil
+		c.pipe(c.prefix.Stdout, c.StdoutPipe)
+	}
+	if c.Stderr != nil && c.Stderr != os.Stderr {
 		c.Stderr = nil
-
-		cmdErrPipe, err := c.StderrPipe()
-		if err != nil {
-			return fmt.Errorf("stderr pipe: %w", err)
-		}
-
-		go func() {
-			_, err := io.Copy(pfxStderr, cmdErrPipe)
-			if err != nil && !errors.Is(err, fs.ErrClosed) {
-				panic(err)
-			}
-		}()
+		c.pipe(c.prefix.Stderr, c.StderrPipe)
 	}
 
 	return c.Cmd.Start()
+}
+
+func (c *Cmd) pipe(dst io.Writer, srcFn func() (io.ReadCloser, error)) {
+	if c.Err != nil {
+		return
+	}
+	src, err := srcFn()
+	if err != nil {
+		c.Err = err
+		return
+	}
+
+	go func() {
+		_, err := io.Copy(dst, src)
+		if err != nil && !errors.Is(err, fs.ErrClosed) {
+			panic(err)
+		}
+	}()
 }
 
 // Refer to [exec.Cmd.Wait].
