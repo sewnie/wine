@@ -3,7 +3,6 @@ package wine
 import (
 	"errors"
 	"io"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -76,10 +75,6 @@ func (c *Cmd) Run() error {
 
 // Refer to [exec.Cmd.Start].
 func (c *Cmd) Start() error {
-	if c.Process != nil {
-		return errors.New("already started")
-	}
-
 	if c.Headless && c.Err != nil {
 		c.Env = append(c.Environ(),
 			"DISPLAY=",
@@ -87,50 +82,33 @@ func (c *Cmd) Start() error {
 			"WINEDEBUG=fixme-all,-winediag,-systray,-ole,-winediag,-ntoskrnl",
 		)
 
-		c.Err = c.prefix.Start()
-	}
-
-	if c.Err != nil {
-		return c.Err
+		if err := c.prefix.Start(); err != nil {
+			return err
+		}
 	}
 
 	// Always ensure its created, wine will complain if the root
 	// directory doesnt exist
 	if c.prefix.dir != "" {
-		c.Err = os.MkdirAll(c.prefix.dir, 0o755)
+		if err := os.MkdirAll(c.prefix.dir, 0o755); err != nil {
+			return err
+		}
 	}
 
-	// Go exec.Command does the same thing done here, but
-	// this works nicer with wineserver for an unknown reason,
-	// otherwise, wineserver will not fork.
-	if c.Stdout != nil && c.Stdout != os.Stdout {
-		c.Stdout = nil
-		c.pipe(c.prefix.Stdout, c.StdoutPipe)
-	}
+	// https://bugs.winehq.org/show_bug.cgi?id=58707
 	if c.Stderr != nil && c.Stderr != os.Stderr {
 		c.Stderr = nil
-		c.pipe(c.prefix.Stderr, c.StderrPipe)
+		stderr, err := c.StderrPipe()
+		if err != nil {
+			return err
+		}
+
+		go func() {
+			_, _ = io.Copy(c.prefix.Stderr, stderr)
+		}()
 	}
 
 	return c.Cmd.Start()
-}
-
-func (c *Cmd) pipe(dst io.Writer, srcFn func() (io.ReadCloser, error)) {
-	if c.Err != nil {
-		return
-	}
-	src, err := srcFn()
-	if err != nil {
-		c.Err = err
-		return
-	}
-
-	go func() {
-		_, err := io.Copy(dst, src)
-		if err != nil && !errors.Is(err, fs.ErrClosed) {
-			panic(err)
-		}
-	}()
 }
 
 // Refer to [exec.Cmd.Wait].
