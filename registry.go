@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -132,17 +131,13 @@ func (p *Prefix) RegistryDelete(key, value string) error {
 // RegistryImport imports keys, values and data from a given registry file data into the
 // Wineprefix's registry.
 func (p *Prefix) RegistryImport(data string) error {
-	f, err := os.CreateTemp("", "go_wine_registry_import.reg")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(f.Name())
-	f.WriteString(data)
-
-	if _, err := p.registry("import", f.Name()); err != nil {
-		return err
-	}
-	return nil
+	// 'reg' does not support reading from stdin, but regedit
+	// does, and on an error, a dialog will appear instead.
+	cmd := p.Wine("regedit", "/C", "-")
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	cmd.Stdin = strings.NewReader(data)
+	return cmd.Run()
 }
 
 // RegistryQuery queries and returns all subkeys of the registry key within
