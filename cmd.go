@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 )
 
 var ErrPrefixNotAbs = errors.New("prefix directory is not an absolute path")
@@ -18,6 +17,12 @@ var ErrPrefixNotAbs = errors.New("prefix directory is not an absolute path")
 // For further information, refer to [exec.Cmd].
 type Cmd struct {
 	*exec.Cmd
+
+	// Prevents the command from having a window by removing
+	// display environment variables. The wineserver will be
+	// ran before the command into foreground, to ensure
+	// that the wineserver does not also run headless.
+	Headless bool
 
 	prefix *Prefix
 }
@@ -53,18 +58,6 @@ func (p *Prefix) Command(name string, arg ...string) *Cmd {
 	}
 }
 
-// Headless removes all window-related variables within the command.
-//
-// Useful when chaining, and when a command doesn't necessarily need a window.
-func (c *Cmd) Headless() *Cmd {
-	c.Env = append(c.Environ(),
-		"DISPLAY=",
-		"WAYLAND_DISPLAY=",
-		"WINEDEBUG=fixme-all,-winediag,-systray,-ole,-winediag,-ntoskrnl",
-	)
-	return c
-}
-
 // Quiet sets the command output to nil, used in contexts where errors
 // are not to be expected.
 func (c *Cmd) Quiet() *Cmd {
@@ -85,6 +78,16 @@ func (c *Cmd) Run() error {
 func (c *Cmd) Start() error {
 	if c.Process != nil {
 		return errors.New("already started")
+	}
+
+	if c.Headless && c.Err != nil {
+		c.Env = append(c.Environ(),
+			"DISPLAY=",
+			"WAYLAND_DISPLAY=",
+			"WINEDEBUG=fixme-all,-winediag,-systray,-ole,-winediag,-ntoskrnl",
+		)
+
+		c.Err = c.prefix.Start()
 	}
 
 	if c.Err != nil {
@@ -132,15 +135,5 @@ func (c *Cmd) pipe(dst io.Writer, srcFn func() (io.ReadCloser, error)) {
 
 // Refer to [exec.Cmd.Wait].
 func (c *Cmd) Wait() error {
-	err := c.Cmd.Wait()
-
-	// Restart the Wineprefix since the new instance will become Headless
-	// as a result of wineboot being Headless.
-	if len(c.Args) > 1 && c.Args[1] == "wineboot" &&
-		slices.Contains(c.Env, "DISPLAY=") {
-		_ = c.prefix.Kill()
-		_ = c.prefix.Start()
-	}
-
-	return err
+	return c.Cmd.Wait()
 }

@@ -42,7 +42,7 @@ func (p *Prefix) Boot(args ...string) *Cmd {
 // Start ensures the Wineprefix's server is running.
 //
 // To have more control over the persistence of the server,
-// use p.Server(ServerPersistent, "2").
+// use p.Server(ServerForeground, ServerPersistent, "2").
 func (p *Prefix) Start() error {
 	return p.Server()
 }
@@ -54,10 +54,14 @@ func (p *Prefix) Kill() error {
 
 // Init returns a [Cmd] for initializating the Wineprefix.
 func (p *Prefix) Init() *Cmd {
-	return p.Boot(BootInit).Headless()
+	c := p.Boot(BootInit)
+	c.Headless = true
+	return c
 }
 
 // Update returns a [Cmd] for updating the Wineprefix.
 func (p *Prefix) Update() *Cmd {
-	return p.Boot(BootUpdate).Headless()
+	c := p.Boot(BootUpdate)
+	c.Headless = true
+	return c
 }
