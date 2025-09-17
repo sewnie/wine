@@ -71,30 +71,33 @@ type Download struct {
 	} `json:"DeliveryOptimization"`
 }
 
-// Path returns the executable path of the Download URL as represented
-// in the Wineprefix.
+// InstallerPath returns a convenient path of a WebView Runtime download URL.
+// For a Edge download, it's version must be appended with an
+// underscore following the Edge version.
 //
 // It is the user's responsibility to ensure this exists if using [Download.Install],
 // by fetching the [Download.URL] to the path returned here.
-func (d *Download) Path(pfx *wine.Prefix) string {
+func InstallerPath(pfx *wine.Prefix, version, arch string) string {
 	id := "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
-	v, _ := d.Version()
+	name := fmt.Sprintf("MicrosoftEdge_%s_%s.exe", strings.ToUpper(arch), version)
 	return filepath.Join(pfx.Dir(),
-		"drive_c", "Program Files (x86)", "Microsoft", "EdgeUpdate", "Download", id, v, d.File)
+		"drive_c", "Program Files (x86)", "Microsoft", "EdgeUpdate", "Download", id, version, name)
 }
 
-// Install runs the downloaded executable with arguments to install it onto the Wineprefix.
+// Install runs the downloaded executable with arguments for installing WebView it onto the Wineprefix.
+// The given executable is assumed to be the executable from a WebView download URL.
+// InstallerPath can be used as a download path.
 //
 // To ensure WebView2 runs correctly within the Wineprefix, a windows version override is installed
 // by default if the Wineprefix is not Proton, since the override is installed in Proton by default.
-func (d *Download) Install(pfx *wine.Prefix) error {
+func Install(pfx *wine.Prefix, name string) error {
 	if !pfx.IsProton() {
 		if err := pfx.RegistryAdd(`HKCU\Software\Wine\AppDefaults\msedgewebview2.exe`, "Version", "win7"); err != nil {
 			return fmt.Errorf("version set: %w", err)
 		}
 	}
 
-	return pfx.Wine(d.Path(pfx),
+	return pfx.Wine(name,
 		"--msedgewebview", "--do-not-launch-msedge", "--system-level",
 	).Run()
 }
