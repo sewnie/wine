@@ -27,6 +27,9 @@ type Prefix struct {
 // must be owned by the current user, and must be an absolute path,
 // otherwise running Wine will fail.
 func New(dir string, root string) *Prefix {
+	if dir == "" {
+		dir = filepath.Join(os.Getenv("HOME"), ".wine")
+	}
 	return &Prefix{
 		Root:   root,
 		Stderr: os.Stderr,
