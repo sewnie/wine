@@ -98,19 +98,31 @@ func (c *Cmd) Start() error {
 	}
 
 	// https://bugs.winehq.org/show_bug.cgi?id=58707
+	if c.Stdout != nil && c.Stdout != os.Stdout {
+		c.Stdout = nil
+		c.pipe(c.prefix.Stdout, c.StdoutPipe)
+	}
 	if c.Stderr != nil && c.Stderr != os.Stderr {
 		c.Stderr = nil
-		stderr, err := c.StderrPipe()
-		if err != nil {
-			return err
-		}
-
-		go func() {
-			_, _ = io.Copy(c.prefix.Stderr, stderr)
-		}()
+		c.pipe(c.prefix.Stderr, c.StderrPipe)
 	}
 
 	return c.Cmd.Start()
+}
+
+func (c *Cmd) pipe(pipeDst io.Writer, pipeFn func() (io.ReadCloser, error)) {
+	if c.Err != nil {
+		return
+	}
+	src, err := pipeFn()
+	if err != nil {
+		c.Err = err
+		return
+	}
+
+	go func() {
+		_, _ = io.Copy(pipeDst, src)
+	}()
 }
 
 // Refer to [exec.Cmd.Wait].
