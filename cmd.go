@@ -75,13 +75,15 @@ func (c *Cmd) Run() error {
 
 // Refer to [exec.Cmd.Start].
 func (c *Cmd) Start() error {
-	if c.Headless && c.Err != nil {
+	if c.Headless {
 		c.Env = append(c.Environ(),
 			"DISPLAY=",
 			"WAYLAND_DISPLAY=",
 			"WINEDEBUG=fixme-all,-winediag,-systray,-ole,-winediag,-ntoskrnl",
 		)
 
+		// Ensure the wineserver is not automatically started with the headless
+		// environment variables
 		if err := c.prefix.Start(); err != nil {
 			return err
 		}
