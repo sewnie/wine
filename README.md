@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 
 	"github.com/sewnie/wine"
+	"github.com/sewnie/wine/webview2"
 )
 
 func main() {
@@ -50,7 +51,7 @@ func main() {
 	log.Println("User's AppData directory:", appData)
 
 	err = pfx.RegistryAdd(`HKEY_CURRENT_USER\Software\Wine\Explorer\Desktops`,
-		"Default", wine.REG_SZ, "1920x1080")
+		"Default", "1920x1080")
     if err != nil {
 		log.Fatal(err)
 	}
@@ -63,6 +64,46 @@ func main() {
 
 	wineVer := pfx.Version()
 	log.Println("Wine version:", wineVer)
+
+	v, err := webview2.StableLegacy.Latest("x64")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	d, err := webview2.StableLegacy.Runtime(v, "x64")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if webview2.Installed(pfx, v) {
+		log.Fatal("is installed")
+	}
+
+	resp, err := webview2.Client.Get(d.URL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Fatal(resp.Status)
+	}
+	os.MkdirAll(filepath.Dir(d.Path(pfx)), 0o755)
+
+	f, err := os.Create(d.Path(pfx))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	_, err = io.Copy(f, resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := d.Install(pfx); err != nil {
+		log.Fatal(err)
+	}
 
 	_ = pfx.Kill()
 }
