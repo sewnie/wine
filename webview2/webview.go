@@ -2,6 +2,8 @@
 package webview2
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,8 +31,17 @@ const (
 
 // Client is the http.Client used for requests. http.DefaultTransport
 // will be used to append Microsoft's certificate.
-var Client = &http.Client{
-	Transport: http.DefaultTransport,
+var Client = &http.Client{}
+
+func init() {
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	pool, _ := x509.SystemCertPool()
+	if pool == nil {
+		pool = x509.NewCertPool()
+	}
+	pool.AppendCertsFromPEM([]byte(microsoftPEM))
+	t.TLSClientConfig = &tls.Config{RootCAs: pool}
+	Client.Transport = t
 }
 
 // Installed determines if the given WebView Runtime version is installed.
