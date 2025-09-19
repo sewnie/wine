@@ -99,21 +99,21 @@ func (c *Cmd) Start() error {
 
 	// https://bugs.winehq.org/show_bug.cgi?id=58707
 	if c.Stdout != nil && c.Stdout != os.Stdout {
-		c.Stdout = nil
-		c.pipe(c.prefix.Stdout, c.StdoutPipe)
+		c.pipe(&c.Stdout, c.StdoutPipe)
 	}
 	if c.Stderr != nil && c.Stderr != os.Stderr {
-		c.Stderr = nil
-		c.pipe(c.prefix.Stderr, c.StderrPipe)
+		c.pipe(&c.Stderr, c.StderrPipe)
 	}
 
 	return c.Cmd.Start()
 }
 
-func (c *Cmd) pipe(pipeDst io.Writer, pipeFn func() (io.ReadCloser, error)) {
+func (c *Cmd) pipe(pipeDst *io.Writer, pipeFn func() (io.ReadCloser, error)) {
 	if c.Err != nil {
 		return
 	}
+	dst := *pipeDst
+	*pipeDst = nil
 	src, err := pipeFn()
 	if err != nil {
 		c.Err = err
@@ -121,7 +121,7 @@ func (c *Cmd) pipe(pipeDst io.Writer, pipeFn func() (io.ReadCloser, error)) {
 	}
 
 	go func() {
-		_, _ = io.Copy(pipeDst, src)
+		_, _ = io.Copy(dst, src)
 	}()
 }
 
