@@ -1,6 +1,7 @@
 package wine
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"os"
@@ -12,6 +13,12 @@ var ErrPrefixNotAbs = errors.New("prefix directory is not an absolute path")
 
 // Cmd is is a struct wrapper that overrides methods to better interact
 // with a Wineprefix.
+//
+// It is not reccomended to call any of the [exec.Cmd]'s methods related to
+// reading output such as StderrPipe, StdoutPipe, Output, among others. This is
+// unfortunately due to a Wine bug that doesn't allow for easy interaction
+// of Wine's output. If a method is unimplemented, it should use [Cmd]'s method
+// overrides.
 //
 // For further information, refer to [exec.Cmd].
 type Cmd struct {
@@ -128,4 +135,33 @@ func (c *Cmd) pipe(pipeDst *io.Writer, pipeFn func() (io.ReadCloser, error)) {
 // Refer to [exec.Cmd.Wait].
 func (c *Cmd) Wait() error {
 	return c.Cmd.Wait()
+}
+
+// Output runs the command and returns its standard output.
+// No error handling is performed on stderr.
+func (c *Cmd) Output() ([]byte, error) {
+	if c.Stdout != nil {
+		return nil, errors.New("Stdout already set")
+	}
+	var b bytes.Buffer
+	c.Stdout = &b
+
+	err := c.Run()
+	return b.Bytes(), err
+}
+
+// Output runs the command and returns its standard output & error.
+func (c *Cmd) CombinedOutput() ([]byte, error) {
+	if c.Stdout != nil {
+		return nil, errors.New("Stdout already set")
+	}
+	if c.Stderr != nil {
+		return nil, errors.New("Stderr already set")
+	}
+	var b bytes.Buffer
+	c.Stdout = &b
+	c.Stderr = &b
+
+	err := c.Run()
+	return b.Bytes(), err
 }

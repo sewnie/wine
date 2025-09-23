@@ -69,7 +69,6 @@ func parseRegistryData(dataType string, data string) (any, error) {
 func (p *Prefix) registry(args ...string) ([]byte, error) {
 	cmd := p.Wine("reg", args...)
 	cmd.Stdout = nil
-	cmd.Stderr = nil
 	b, err := cmd.Output()
 	if err != nil {
 		// wine reg(1) outputs error to stdout
