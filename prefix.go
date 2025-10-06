@@ -18,6 +18,11 @@ type Prefix struct {
 	Stderr io.Writer
 	Stdout io.Writer
 
+	// Specifies additional environment variables for all
+	// descendant Prefix commands. os.Environ()
+	// will be appended when Env is used.
+	Env []string
+
 	dir string // Path to wineprefix.
 }
 

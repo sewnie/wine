@@ -42,6 +42,7 @@ func (p *Prefix) Command(name string, arg ...string) *Cmd {
 	cmd := exec.Command(name, arg...)
 	cmd.Stderr = p.Stderr
 	cmd.Stdout = p.Stdout
+	cmd.Env = append(os.Environ(), p.Env...)
 	if p.dir != "" {
 		cmd.Env = append(cmd.Environ(), "WINEPREFIX="+p.dir)
 	}
