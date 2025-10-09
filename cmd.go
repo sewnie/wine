@@ -24,13 +24,8 @@ var ErrPrefixNotAbs = errors.New("prefix directory is not an absolute path")
 type Cmd struct {
 	*exec.Cmd
 
-	// Prevents the command from having a window by removing
-	// display environment variables. The wineserver will be
-	// ran before the command into foreground, to ensure
-	// that the wineserver does not also run headless.
-	Headless bool
-
-	prefix *Prefix
+	headless bool // reserved for wineboot
+	prefix   *Prefix
 }
 
 // Command returns the Cmd struct to execute the named program
@@ -81,20 +76,31 @@ func (c *Cmd) Run() error {
 	return c.Wait()
 }
 
+func (c *Cmd) pipe(pipeDst *io.Writer, pipeFn func() (io.ReadCloser, error)) {
+	if c.Err != nil {
+		return
+	}
+	dst := *pipeDst
+	*pipeDst = nil
+	src, err := pipeFn()
+	if err != nil {
+		c.Err = err
+		return
+	}
+
+	go func() {
+		_, _ = io.Copy(dst, src)
+	}()
+}
+
 // Refer to [exec.Cmd.Start].
 func (c *Cmd) Start() error {
-	if c.Headless {
+	if c.headless {
 		c.Env = append(c.Environ(),
 			"DISPLAY=",
 			"WAYLAND_DISPLAY=",
 			"WINEDEBUG=fixme-all,-winediag,-systray,-ole,-winediag,-ntoskrnl",
 		)
-
-		// Ensure the wineserver is not automatically started with the headless
-		// environment variables
-		if err := c.prefix.Start(); err != nil {
-			return err
-		}
 	}
 
 	// Always ensure its created, wine will complain if the root
@@ -116,26 +122,20 @@ func (c *Cmd) Start() error {
 	return c.Cmd.Start()
 }
 
-func (c *Cmd) pipe(pipeDst *io.Writer, pipeFn func() (io.ReadCloser, error)) {
-	if c.Err != nil {
-		return
-	}
-	dst := *pipeDst
-	*pipeDst = nil
-	src, err := pipeFn()
-	if err != nil {
-		c.Err = err
-		return
-	}
-
-	go func() {
-		_, _ = io.Copy(dst, src)
-	}()
-}
-
 // Refer to [exec.Cmd.Wait].
 func (c *Cmd) Wait() error {
-	return c.Cmd.Wait()
+	err := c.Cmd.Wait()
+
+	if c.headless {
+		// Restart the wineserver to prevent new applications from being headless,
+		// as this Cmd could be the first process of the wineserver.
+		_ = c.prefix.Kill()
+		if err == nil {
+			_ = c.prefix.Start()
+		}
+	}
+
+	return err
 }
 
 // Output runs the command and returns its standard output.

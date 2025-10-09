@@ -55,13 +55,13 @@ func (p *Prefix) Kill() error {
 // Init returns a [Cmd] for initializating the Wineprefix.
 func (p *Prefix) Init() *Cmd {
 	c := p.Boot(BootInit)
-	c.Headless = true
+	c.headless = true
 	return c
 }
 
 // Update returns a [Cmd] for updating the Wineprefix.
 func (p *Prefix) Update() *Cmd {
 	c := p.Boot(BootUpdate)
-	c.Headless = true
+	c.headless = true
 	return c
 }
