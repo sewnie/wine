@@ -164,7 +164,7 @@ func (c Channel) Latest(arch string) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", errors.New("webview: bad status")
+		return "", fmt.Errorf("webview2: bad status: %s", resp.Status)
 	}
 
 	data := struct {
@@ -194,7 +194,7 @@ func (c Channel) Downloads(version, arch string) ([]Download, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("webview: bad status")
+		return nil, fmt.Errorf("webview2: bad status: %s", resp.Status)
 	}
 
 	var data []Download
@@ -223,7 +223,7 @@ func (c Channel) Runtime(version, arch string) (*Download, error) {
 		}
 	}
 
-	return nil, errors.New("webview: runtime missing")
+	return nil, errors.New("webview2: runtime missing")
 }
 
 const microsoftPEM = `-----BEGIN CERTIFICATE-----
