@@ -90,10 +90,16 @@ func InstallerPath(pfx *wine.Prefix, version, arch string) string {
 //
 // To ensure WebView2 runs correctly within the Wineprefix, a windows version override is installed
 // by default if the Wineprefix is not Proton, since the override is installed in Proton by default.
+//
+// The override will also be checked if it isn't set, in that case, the override will not be installed.
 func Install(pfx *wine.Prefix, name string) error {
 	if !pfx.IsProton() {
-		if err := pfx.RegistryAdd(`HKCU\Software\Wine\AppDefaults\msedgewebview2.exe`, "Version", "win7"); err != nil {
-			return fmt.Errorf("version set: %w", err)
+		key := `HKCU\Software\Wine\AppDefaults\msedgewebview2.exe`
+		q, _ := pfx.RegistryQuery(key, "Version")
+		if q == nil {
+			if err := pfx.RegistryAdd(key, "Version", "win7"); err != nil {
+				return fmt.Errorf("version set: %w", err)
+			}
 		}
 	}
 
