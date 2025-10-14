@@ -44,13 +44,6 @@ func init() {
 	Client.Transport = t
 }
 
-// Installed determines if the given WebView Runtime version is installed.
-func Installed(pfx *wine.Prefix, version string) bool {
-	_, err := os.Stat(filepath.Join(pfx.Dir(),
-		"drive_c", "Program Files (x86)", "Microsoft", "EdgeWebView", "Application", version))
-	return err == nil
-}
-
 // Download represents a version's available download.
 type Download struct {
 	URL    string `json:"Url"`
@@ -88,6 +81,8 @@ func InstallerPath(pfx *wine.Prefix, version, arch string) string {
 // The given executable is assumed to be the executable from a WebView download URL.
 // InstallerPath can be used as a download path.
 //
+// It is the callers responsibility to ensure no downgrades have been made - see [Current].
+//
 // To ensure WebView2 runs correctly within the Wineprefix, a windows version override is installed
 // by default if the Wineprefix is not Proton, since the override is installed in Proton by default.
 //
@@ -106,6 +101,38 @@ func Install(pfx *wine.Prefix, name string) error {
 	return pfx.Wine(name,
 		"--msedgewebview", "--do-not-launch-msedge", "--system-level",
 	).Run()
+}
+
+// Uninstall runs the named version's uninstaller on the given Wineprefix.
+func Uninstall(pfx *wine.Prefix, version string) error {
+	err := pfx.Wine(
+		filepath.Join(pfx.Dir(), "drive_c", "Program Files (x86)", "Microsoft",
+			"EdgeWebView", "Application", version, "Installer", "setup.exe"),
+		"--msedgewebview", "--uninstall", "--system-level", "--force-uninstall").Run()
+	// Uninstaller will return 'exit status 17'. Return an error only if it was not
+	// successfully removed.
+	if !Installed(pfx, version) {
+		return nil
+	}
+	return err
+}
+
+// Installed determines if the given WebView Runtime version is installed.
+func Installed(pfx *wine.Prefix, version string) bool {
+	_, err := os.Stat(filepath.Join(pfx.Dir(),
+		"drive_c", "Program Files (x86)", "Microsoft", "EdgeWebView", "Application", version))
+	return err == nil
+}
+
+// Current returns the current installed WebView2 version in the given
+// Wineprefix. If an error occured, an empty string will be returned.
+func Current(pfx *wine.Prefix) string {
+	key := `HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView`
+	q, _ := pfx.RegistryQuery(key, "DisplayVersion")
+	if q == nil {
+		return ""
+	}
+	return q[0].Subkeys[0].Value.(string)
 }
 
 // Version returns the DownloadInfo's runtime and Edge version.
