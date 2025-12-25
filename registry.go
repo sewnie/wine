@@ -1,194 +1,123 @@
 package wine
 
 import (
-	"bufio"
-	"bytes"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"strconv"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
-// RegistryQueryKey represents a queried registry key.
-type RegistryQueryKey struct {
-	Key     string
-	Subkeys []RegistryQuerySubkey
+// does not seem to change with current user
+const sid = `S-1-5-21-0-0-0-1000`
+
+// Registry represents the Wineprefix's root registry keys at the state
+// it was retrieved. It is not equal to the Wineprefix's actual
+// registry files unless it was exported.
+//
+// To export a registry to a Wineprefix, the Registry must have
+// come from [Registry()], which requires an initialized wineprefix,
+// and the Wineserver must be killed as to not conflict with
+// Wineserver's internal registry.
+//
+// To write a RegistryKey to a Wineprefix, you can use either [Prefix.RegistryAdd]
+// or [Prefix.RegistryImportKey].
+//
+// Only HKEY_CURRENT_USER and HKEY_LOCAL_MACHINE are supported
+// and queryable.
+type Registry struct {
+	CurrentUser *RegistryKey
+	Machine     *RegistryKey
+
+	pfx *Prefix
 }
 
-// RegistryQuerySubkey represents a subkey of a [RegistryQueryKey].
-type RegistryQuerySubkey struct {
-	Name string
+// Registry parses and returns the registry for the given Wineprefix.
+//
+// See the commment on [Registry] for more information.
+func (p *Prefix) Registry() (*Registry, error) {
+	r := Registry{pfx: p}
 
-	// REG_SZ        = string
-	// REG_MULTI_SZ  = []string
-	// REG_DWORD     = uint32, uint
-	// REG_QWORD     = uint64
-	// REG_BINARY    = []byte
-	// REG_NONE      = byte(0)
-	Value any
-}
-
-func formatRegistryData(data any) (string, string) {
-	switch d := data.(type) {
-	case string:
-		return "REG_SZ", d
-	case []string:
-		return "REG_MULTI_SZ", strings.Join([]string(d), "\x00") + "\x00\x00"
-	case uint:
-		return "REG_DWORD", strconv.FormatUint(uint64(d), 10)
-	case uint32:
-		return "REG_DWORD", strconv.FormatUint(uint64(d), 10)
-	case uint64:
-		return "REG_QWORD", strconv.FormatUint(uint64(d), 10)
-	case []byte:
-		return "REG_BINARY", hex.EncodeToString(d)
-	case byte:
-		return "REG_NONE", "" // value ignored by reg
-	default:
-		return "", ""
-	}
-}
-
-func parseRegistryData(dataType string, data string) (any, error) {
-	switch dataType {
-	case "REG_SZ", "REG_MULTI_SZ":
-		return data, nil
-	case "REG_DWORD":
-		return strconv.ParseUint(data, 0, 32)
-	case "REG_QWORD":
-		return strconv.ParseUint(data, 0, 64)
-	case "REG_BINARY":
-		return hex.DecodeString(data)
-	case "REG_NONE":
-		return byte(0), nil
-	}
-	return nil, fmt.Errorf("unhandled type %s", dataType)
-}
-
-func (p *Prefix) registry(args ...string) ([]byte, error) {
-	cmd := p.Wine("reg", args...)
-	cmd.Stdout = nil
-	b, err := cmd.Output()
+	k, err := ParseRegistryFile(filepath.Join(p.dir, "system.reg"))
 	if err != nil {
-		// wine reg(1) outputs error to stdout
-		if bytes.HasPrefix(b, []byte("reg: ")) {
-			return nil, fmt.Errorf("registry error: %s", string(b[5:len(b)-1]))
-		}
 		return nil, err
 	}
+	r.Machine = k
 
-	return b, nil
+	k, err = ParseRegistryFile(filepath.Join(p.dir, "user.reg"))
+	if err != nil {
+		return nil, err
+	}
+	r.CurrentUser = k
+
+	return &r, nil
 }
 
-// RegistryAdd adds a new registry key to the Wineprefix with the named key, value, type, and data.
-// The value parameter can be empty, to modify the (Default) value.
-//
-// See [RegistryQuerySubkey] for more details about the type of data.
-func (p *Prefix) RegistryAdd(key string, value string, data any) error {
-	if key == "" {
-		return errors.New("no registry key given")
+// Query finds the given registry key path in r. nil will be
+// returned if no such key was found. The path must be prefixed
+// with only HKLM or HKCU (and their full counterparts), as they
+// are the only root keys available in Registry.
+func (r *Registry) Query(path string) *RegistryKey {
+	return r.queryPath(path, false)
+}
+
+func (r *Registry) queryPath(path string, create bool) *RegistryKey {
+	i := strings.Index(path, `\`)
+	if i < 0 {
+		i = len(path)
 	}
 
-	t, d := formatRegistryData(data)
-	if t == "" {
-		return errors.New("unhandled type var")
-	}
-
-	args := []string{"add", key, "/t", t, "/d", d, "/f"}
-	if value != "" {
-		args = append(args, "/v", value)
-	} else {
-		args = append(args, "/ve")
-	}
-
-	if _, err := p.registry(args...); err != nil {
-		return err
+	// List of known registry names and their files (if applicable):
+	// - REGISTRY\User\.Default -> userdef.reg
+	// - HKEY_LOCAL_MACHINE -> REGISTRY\MACHINE -> system.reg
+	// - HKEY_CURRENT_USER -> REGISTRY\User\S-1-5-21-0-0-0-1000 -> user.reg
+	// - HKEY_CLASSES_ROOT -> REGISTRY\MACHINE\Software\Classes
+	// - HKEY_USERS -> REGISTRY\User
+	// - HKEY_CURRENT_CONFIG -> REGISTRY\System\ControlSet001\Enum
+	switch root, key := path[:i], path[i+1:]; root {
+	case "HKEY_LOCAL_MACHINE", "HKLM":
+		if r.Machine == nil {
+			r.Machine = &RegistryKey{Name: "HKEY_LOCAL_MACHINE"}
+		}
+		return r.Machine.queryPath(key, create)
+	case "HKEY_CURRENT_USER", "HKCU":
+		if r.CurrentUser == nil {
+			r.CurrentUser = &RegistryKey{Name: "HKEY_CURRENT_USER"}
+		}
+		return r.CurrentUser.queryPath(key, create)
 	}
 	return nil
 }
 
-// RegistryDelete deletes a registry key of the named key and value to be removed
-// from the Wineprefix. The value parameter can be empty, if wanting to retrieving
-// delete the entire key.
-func (p *Prefix) RegistryDelete(key, value string) error {
-	if key == "" {
-		return errors.New("no registry key given")
-	}
-
-	args := []string{"delete", key, "/f"}
-	if value != "" {
-		args = append(args, "/v", value)
-	}
-
-	if _, err := p.registry(args...); err != nil {
-		return err
-	}
-	return nil
-}
-
-// RegistryImport imports keys, values and data from a given registry file data into the
-// Wineprefix's registry.
-func (p *Prefix) RegistryImport(data string) error {
-	// 'reg' does not support reading from stdin, but regedit
-	// does, and on an error, a dialog will appear instead.
-	cmd := p.Wine("regedit", "/C", "-")
-	cmd.Stdout = nil
-	cmd.Stderr = nil
-	cmd.Stdin = strings.NewReader(data)
-	return cmd.Run()
-}
-
-// RegistryQuery queries and returns all subkeys of the registry key within
-// the Wineprefix. The value parameter can be empty, if wanting to retrieving
-// all of the subkeys of the key.
+// Save exports and writes r to the Wineprefix's registry files.
+// It is assumed that the Registry is serialized from the same
+// registry files and must exist.
 //
-// See [RegistryQuerySubkey] for more details about the type of data returned.
-//
-// If the registry key is not found, nil will be returned.
-func (p *Prefix) RegistryQuery(key, value string) ([]RegistryQueryKey, error) {
-	var q []RegistryQueryKey
-
-	args := []string{"query", key, "/s"}
-	if value != "" {
-		args = append(args, "/v", value)
+// See the commment on [Registry] for what is exported.
+func (r *Registry) Save() error {
+	if r.pfx == nil {
+		return errors.New("wine: no registry origin")
 	}
-
-	data, err := p.registry(args...)
+	s, err := os.OpenFile(filepath.Join(r.pfx.dir, "system.reg"),
+		os.O_TRUNC|os.O_WRONLY, 0o644)
 	if err != nil {
-		if strings.Contains(err.Error(), "Unable to find the specified registry key") {
-			return nil, nil
-		}
-		return nil, err
+		return fmt.Errorf("open machine: %w", err)
+	}
+	defer s.Close()
+
+	if err := r.Machine.exportSystem(s); err != nil {
+		return fmt.Errorf("export machine: %w", err)
 	}
 
-	var c *RegistryQueryKey
-	scanner := bufio.NewScanner(bytes.NewReader(data))
-	for scanner.Scan() {
-		line := scanner.Text()
-		reg := strings.Split(line, "    ")
-
-		switch len(reg) {
-		case 1:
-			if reg[0] == "" && c != nil {
-				q = append(q, *c)
-			}
-			c = &RegistryQueryKey{Key: reg[0]}
-		case 4:
-			value, err := parseRegistryData(reg[2], reg[3])
-			if err != nil {
-				return nil, fmt.Errorf("subkey %s: %w", reg[1], err)
-			}
-			c.Subkeys = append(c.Subkeys, RegistryQuerySubkey{
-				Name:  reg[1],
-				Value: value,
-			})
-		}
+	u, err := os.OpenFile(filepath.Join(r.pfx.dir, "user.reg"),
+		os.O_TRUNC|os.O_WRONLY, 0o644)
+	if err != nil {
+		return fmt.Errorf("open user: %w", err)
 	}
 
-	return q, nil
-}
+	if err := r.CurrentUser.exportSystem(u); err != nil {
+		return fmt.Errorf("export user: %w", err)
+	}
 
-func (p *Prefix) SetDPI(dpi uint) error {
-	return p.RegistryAdd(`HKEY_CURRENT_USER\Control Panel\Desktop`, "LogPixels", dpi)
+	return nil
 }

@@ -89,10 +89,9 @@ func InstallerPath(pfx *wine.Prefix, version, arch string) string {
 // The override will also be checked if it isn't set, in that case, the override will not be installed.
 func Install(pfx *wine.Prefix, name string) error {
 	if !pfx.IsProton() {
-		key := `HKCU\Software\Wine\AppDefaults\msedgewebview2.exe`
-		q, _ := pfx.RegistryQuery(key, "Version")
-		if q == nil {
-			if err := pfx.RegistryAdd(key, "Version", "win7"); err != nil {
+		path := `HKCU\Software\Wine\AppDefaults\msedgewebview2.exe`
+		if k, _ := pfx.RegistryQuery(path); k == nil {
+			if err := pfx.RegistryAdd(path, "Version", "win7"); err != nil {
 				return fmt.Errorf("version set: %w", err)
 			}
 		}
@@ -127,12 +126,14 @@ func Installed(pfx *wine.Prefix, version string) bool {
 // Current returns the current installed WebView2 version in the given
 // Wineprefix. If an error occured, an empty string will be returned.
 func Current(pfx *wine.Prefix) string {
-	key := `HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView`
-	q, _ := pfx.RegistryQuery(key, "DisplayVersion")
-	if q == nil {
-		return ""
+	path := `HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView`
+	k, _ := pfx.RegistryQuery(path)
+	if k != nil {
+		if v := k.GetValue("DisplayVersion"); v != nil {
+			return v.Data.(string)
+		}
 	}
-	return q[0].Subkeys[0].Value.(string)
+	return ""
 }
 
 // Version returns the DownloadInfo's runtime and Edge version.

@@ -1,9 +1,8 @@
 package dxvk
 
 import (
-	"slices"
-
 	"github.com/sewnie/wine"
+	"slices"
 )
 
 var dllOverridesKey = `HKEY_CURRENT_USER\Software\Wine\DllOverrides`
@@ -11,25 +10,25 @@ var dllOverridesKey = `HKEY_CURRENT_USER\Software\Wine\DllOverrides`
 // Overriden checks if the DXVK DLL overrides have been
 // installed in the Wineprefix.
 func Overriden(pfx *wine.Prefix) (bool, error) {
-	q, err := pfx.RegistryQuery(dllOverridesKey, "")
+	k, err := pfx.RegistryQuery(dllOverridesKey)
 	if err != nil {
 		return false, err
 	}
 
-	overrides := []wine.RegistryQuerySubkey{
+	overrides := []wine.RegistryValue{
 		{"d3d10core", "builtin"},
 		{"d3d11", "builtin"},
 		{"d3d9", "builtin"},
 		{"dxgi", "builtin"},
 	}
 
-	if len(q) == 0 {
+	if len(k.Values) == 0 {
 		return false, nil
 	}
 
 	allOverrides := true
 	for _, o := range overrides {
-		if !slices.Contains(q[0].Subkeys, o) {
+		if !slices.Contains(k.Values, o) {
 			allOverrides = false
 		}
 	}
