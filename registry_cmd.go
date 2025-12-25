@@ -162,10 +162,6 @@ func parseCmdData(dataType string, data string) (RegistryData, error) {
 	return nil, fmt.Errorf("unhandled type %s", dataType)
 }
 
-func (p *Prefix) SetDPI(dpi uint) error {
-	return p.RegistryAdd(`HKEY_CURRENT_USER\Control Panel\Desktop`, "LogPixels", dpi)
-}
-
 func formatRegistryData(data any) (string, string) {
 	switch d := data.(type) {
 	case string:
