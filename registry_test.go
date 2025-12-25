@@ -27,7 +27,7 @@ func TestRegistry(t *testing.T) {
 	exp := &Registry{
 		Machine: &RegistryKey{
 			Name: "HKEY_LOCAL_MACHINE",
-			subkeys: []*RegistryKey{{Name: "Software", subkeys: []*RegistryKey{{
+			Subkeys: []*RegistryKey{{Name: "Software", Subkeys: []*RegistryKey{{
 				Name:     "Foobar",
 				Values:   []RegistryValue{{Name: "Foo", Data: "Bar"}},
 				modified: Filetime(0x1dc3e01c855469c),
@@ -35,7 +35,7 @@ func TestRegistry(t *testing.T) {
 		},
 		CurrentUser: &RegistryKey{
 			Name: "HKEY_CURRENT_USER",
-			subkeys: []*RegistryKey{{Name: "Software", subkeys: []*RegistryKey{{
+			Subkeys: []*RegistryKey{{Name: "Software", Subkeys: []*RegistryKey{{
 				Name:     "Foobar",
 				Values:   []RegistryValue{{Name: "Foo", Data: "Bar"}},
 				modified: Filetime(0x1dc3e01c855469c),

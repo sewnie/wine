@@ -9,13 +9,16 @@ import (
 // RegistryKey represents a relative, offline Wine registry key with its
 // known values and subkeys.
 //
+// It is not reccomended to iterate over the Subkeys field to modify it,
+// use [RegistryKey.Add] and [RegistryKey.Delete].
+//
 // Symlinked registry keys are unsupported. They always contain a subkey
 // with the name SymbolicLinkValue and an absolute registry path
 // such as '\Registry\Machine\Software\Classes\AppsId' encoded in UTF16LE.
 type RegistryKey struct {
 	Name    string
 	Values  []RegistryValue
-	subkeys []*RegistryKey
+	Subkeys []*RegistryKey
 
 	parent   *RegistryKey
 	modified Filetime
@@ -28,6 +31,24 @@ type RegistryKey struct {
 type RegistryValue struct {
 	Name string
 	Data RegistryData
+}
+
+// NewRegistryKey creates a registry key and its parents based
+// on the absolute registry path.
+func NewRegistryKey(path string) *RegistryKey {
+	i := strings.Index(path, `\`)
+	if i < 0 {
+		i = len(path)
+	}
+
+	parent := RegistryKey{Name: path[:i]}
+	switch parent.Name {
+	case "HKLM":
+		parent.Name = "HKEY_LOCAL_MACHINE"
+	case "HKCU":
+		parent.Name = "HKEY_CURRENT_USER"
+	}
+	return parent.Add(path[i+1:])
 }
 
 // GetValue finds the a registry value with the given name in k. If it is
@@ -54,24 +75,6 @@ func (k *RegistryKey) SetValue(name string, data RegistryData) *RegistryValue {
 	}
 	k.Values = append(k.Values, RegistryValue{name, data})
 	return &k.Values[len(k.Values)-1]
-}
-
-// NewRegistryKey creates a registry key and its parents based
-// on the absolute registry path.
-func NewRegistryKey(path string) *RegistryKey {
-	i := strings.Index(path, `\`)
-	if i < 0 {
-		i = len(path)
-	}
-
-	parent := RegistryKey{Name: path[:i]}
-	switch parent.Name {
-	case "HKLM":
-		parent.Name = "HKEY_LOCAL_MACHINE"
-	case "HKCU":
-		parent.Name = "HKEY_CURRENT_USER"
-	}
-	return parent.Add(path[i+1:])
 }
 
 // Add will find the registry key located at path, relative to k,
@@ -134,13 +137,13 @@ func (k *RegistryKey) Delete(path string) bool {
 		k = nil
 	}
 
-	for i, subkey := range query.parent.subkeys {
+	for i, subkey := range query.parent.Subkeys {
 		if subkey != query {
 			continue
 		}
-		query.parent.subkeys = append(
-			query.parent.subkeys[:i],
-			query.parent.subkeys[i+1:]...)
+		query.parent.Subkeys = append(
+			query.parent.Subkeys[:i],
+			query.parent.Subkeys[i+1:]...)
 		return true
 	}
 	panic("wine: subkey successfully traversed but is missing in parent")
@@ -156,7 +159,7 @@ segment:
 	for _, segment := range strings.Split(path, `\`) {
 		// Iterate backwards as the most recently added key would
 		// be last, useful in parsing.
-		for _, subkey := range slices.Backward(current.subkeys) {
+		for _, subkey := range slices.Backward(current.Subkeys) {
 			if subkey.Name == segment {
 				current = subkey
 				continue segment
@@ -165,11 +168,11 @@ segment:
 		if !create {
 			return nil
 		}
-		current.subkeys = append(current.subkeys, &RegistryKey{
+		current.Subkeys = append(current.Subkeys, &RegistryKey{
 			Name:   segment,
 			parent: current,
 		})
-		current = current.subkeys[len(current.subkeys)-1]
+		current = current.Subkeys[len(current.Subkeys)-1]
 	}
 	return current
 }
@@ -191,11 +194,11 @@ func (k *RegistryKey) Equal(b *RegistryKey) bool {
 			return false
 		}
 	}
-	if len(k.subkeys) != len(b.subkeys) {
+	if len(k.Subkeys) != len(b.Subkeys) {
 		return false
 	}
-	for i := range k.subkeys {
-		if !k.subkeys[i].Equal(b.subkeys[i]) {
+	for i := range k.Subkeys {
+		if !k.Subkeys[i].Equal(b.Subkeys[i]) {
 			return false
 		}
 	}

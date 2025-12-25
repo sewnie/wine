@@ -105,7 +105,7 @@ func testdata() *RegistryKey {
 		},
 		parent: root,
 	}
-	root.subkeys = append(root.subkeys, foo)
+	root.Subkeys = append(root.Subkeys, foo)
 	bar := &RegistryKey{
 		Name:     "Bar",
 		modified: Filetime(0x1dc3e01c855469c),
@@ -117,7 +117,7 @@ func testdata() *RegistryKey {
 		},
 		parent: foo,
 	}
-	foo.subkeys = append(foo.subkeys, bar)
+	foo.Subkeys = append(foo.Subkeys, bar)
 	baz := &RegistryKey{
 		Name:     "Baz",
 		modified: Filetime(0x1dc74e26c24986a),
@@ -129,13 +129,13 @@ func testdata() *RegistryKey {
 		},
 		parent: bar,
 	}
-	bar.subkeys = append(bar.subkeys, baz)
+	bar.Subkeys = append(bar.Subkeys, baz)
 	quz := &RegistryKey{
 		Name:     "Quz",
 		modified: Filetime(0x1dc74efdcaf516c),
 		parent:   foo,
 	}
-	foo.subkeys = append(foo.subkeys, quz)
+	foo.Subkeys = append(foo.Subkeys, quz)
 	baz = &RegistryKey{
 		Name:     "Baz",
 		modified: Filetime(0x1dc74efdcc0807c),
@@ -145,7 +145,7 @@ func testdata() *RegistryKey {
 		link:   true,
 		parent: foo,
 	}
-	foo.subkeys = append(foo.subkeys, baz)
+	foo.Subkeys = append(foo.Subkeys, baz)
 	return root
 }
 

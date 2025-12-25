@@ -84,7 +84,7 @@ func (k *RegistryKey) export(wine bool, w io.Writer) error {
 		}
 	}
 
-	for _, sk := range k.subkeys {
+	for _, sk := range k.Subkeys {
 		err := sk.export(wine, w)
 		if err != nil {
 			return err
