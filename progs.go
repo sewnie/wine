@@ -1,6 +1,8 @@
 package wine
 
 import (
+	"fmt"
+	"log/slog"
 	"os/exec"
 )
 
@@ -45,10 +47,22 @@ func (p *Prefix) Boot(args ...string) *Cmd {
 // prepared to run any Wine application. The persistence is
 // automatically set to 32.
 //
+// If the Wineprefix is out of date, it will be updated here.
+//
 // This procedure is done automatically as necessary by invoking any
 // Wine application.
 func (p *Prefix) Start() error {
-	err := p.Server(ServerPersistent, "32")
+	needUpdate, err := p.needsUpdate()
+	if err != nil {
+		slog.Warn("wine: Could not determine Wineprefix update state", "err", err)
+	} else if needUpdate {
+		slog.Info("wine: Updating Wineprefix")
+		if err := p.Update(); err != nil {
+			return fmt.Errorf("update: %w", err)
+		}
+	}
+
+	err = p.Server(ServerPersistent, "32")
 	if err != nil {
 		return err
 	}
@@ -63,16 +77,19 @@ func (p *Prefix) Kill() error {
 // Init returns a [Cmd] for initializating the Wineprefix.
 //
 // This procedure is done automatically as necessary by invoking any
-// Wine application.
-func (p *Prefix) Init() *Cmd {
+// Wine application or using [Prefix.Start].
+func (p *Prefix) Init() error {
 	c := p.Boot(BootInit)
 	c.headless = true
-	return c
+	return c.Run()
 }
 
 // Update fully re-initalizes the Wineprefix data using Wineboot.
-func (p *Prefix) Update() *Cmd {
+//
+// This procedure is done automatically as necessary by invoking any
+// Wine application or using [Prefix.Start].
+func (p *Prefix) Update() error {
 	c := p.Boot(BootUpdate)
 	c.headless = true
-	return c
+	return c.Run()
 }

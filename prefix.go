@@ -5,7 +5,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"syscall"
+	"time"
 )
 
 // Prefix is a representation of a Wineprefix, which is where
