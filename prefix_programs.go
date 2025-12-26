@@ -52,10 +52,10 @@ func (p *Prefix) Boot(args ...string) *Cmd {
 // This procedure is done automatically as necessary by invoking any
 // Wine application.
 func (p *Prefix) Start() error {
-	needUpdate, err := p.needsUpdate()
+	u, err := p.NeedsUpdate()
 	if err != nil {
 		slog.Warn("wine: Could not determine Wineprefix update state", "err", err)
-	} else if needUpdate {
+	} else if u {
 		slog.Info("wine: Updating Wineprefix")
 		if err := p.Update(); err != nil {
 			return fmt.Errorf("update: %w", err)

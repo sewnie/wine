@@ -9,7 +9,12 @@ import (
 	"time"
 )
 
-func (p *Prefix) needsUpdate() (bool, error) {
+// NeedsUpdate reports whether the Wineprefix requires a full
+// re-initialization, determined by the Wine installation.
+//
+// Errors that can occur include failure to lookup installation
+// and existence of the wineprefix directory.
+func (p *Prefix) NeedsUpdate() (bool, error) {
 	stamp, err := p.configUpdated()
 	if err != nil {
 		return true, fmt.Errorf("config: %w", err)
