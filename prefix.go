@@ -1,9 +1,11 @@
 package wine
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"syscall"
 )
 
 // Prefix is a representation of a Wineprefix, which is where
@@ -63,6 +65,23 @@ func (p *Prefix) IsProton() bool {
 // IsSetup determines if the prefix exists and has been setup.
 func (p *Prefix) Exists() bool {
 	_, err := os.Stat(filepath.Join(p.dir, "drive_c", "windows"))
+	return err == nil
+}
+
+// Running reports whether the Wineserver is already running
+// for this Wineprefix on the host system.
+func (p *Prefix) Running() bool {
+	fi, err := os.Stat(p.dir)
+	if err != nil {
+		return false
+	}
+	stat, ok := fi.Sys().(*syscall.Stat_t)
+	if !ok {
+		return false
+	}
+	lock := filepath.Join(os.TempDir(), fmt.Sprintf(".wine-%d/server-%x-%x",
+		os.Getuid(), stat.Dev, stat.Ino), "socket")
+	_, err = os.Stat(lock)
 	return err == nil
 }
 
