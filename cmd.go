@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -70,6 +71,7 @@ func (c *Cmd) Quiet() *Cmd {
 
 // Refer to [exec.Cmd.Run].
 func (c *Cmd) Run() error {
+	slog.Debug("Running Wine Command", "cmd", c)
 	if err := c.Start(); err != nil {
 		return err
 	}
