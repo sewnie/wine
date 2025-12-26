@@ -17,7 +17,12 @@ import (
 func (p *Prefix) NeedsUpdate() (bool, error) {
 	stamp, err := p.configUpdated()
 	if err != nil {
-		return true, fmt.Errorf("config: %w", err)
+		// Fetching Wineprefix .update-timestamp failed,
+		// could be permission denied or another I/O error such
+		// as the file being missing.
+		// Tell the caller that the Wineprefix is inaccessible,
+		// and make Wine handle the error if necssary.
+		return true, nil
 	}
 
 	updated, err := p.updated()
