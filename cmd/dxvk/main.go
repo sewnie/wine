@@ -26,7 +26,7 @@ func main() {
 	if !pfx.Exists() {
 		log.Println("Initializing Wineprefix")
 
-		err := pfx.Init().Run()
+		err := pfx.Init()
 		if err != nil {
 			log.Fatalln("failed to initialize:", err)
 		}
@@ -36,7 +36,7 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to find installed dxvk:", err)
 	}
-	log.Println("Installed DXVK version:", v)
+	log.Printf("Installed DXVK version: %v", v)
 
 	switch flag.Arg(0) {
 	case "install":
@@ -66,7 +66,9 @@ func installDXVK(pfx *wine.Prefix, version string) error {
 	}
 	defer os.Remove(out.Name())
 
-	resp, err := http.Get(dxvk.URL(version))
+	url := dxvk.URL(version)
+	log.Println("Fetching URL:", url)
+	resp, err := http.Get(url)
 	if err != nil {
 		return fmt.Errorf("get: %w", err)
 	}
