@@ -1,6 +1,8 @@
 package wine
 
-import "os/exec"
+import (
+	"os/exec"
+)
 
 const (
 	ServerDebug      = "--debug"
@@ -20,7 +22,7 @@ const (
 	BootUpdate     = "--update"
 )
 
-// Server runs wineserver with the given commands.
+// Server runs wineserver with the given arguments.
 func (p *Prefix) Server(args ...string) error {
 	err := p.Command(p.bin("wineserver"), args...).Run()
 	if err == nil {
@@ -39,12 +41,18 @@ func (p *Prefix) Boot(args ...string) *Cmd {
 	return p.Wine("wineboot", args...)
 }
 
-// Start ensures the Wineprefix's server is running.
+// Start ensures the Wineprefix's server is running and is
+// prepared to run any Wine application. The persistence is
+// automatically set to 32.
 //
-// To have more control over the persistence of the server,
-// use p.Server(ServerForeground, ServerPersistent, "2").
+// This procedure is done automatically as necessary by invoking any
+// Wine application.
 func (p *Prefix) Start() error {
-	return p.Server()
+	err := p.Server(ServerPersistent, "32")
+	if err != nil {
+		return err
+	}
+	return p.Boot(BootRestart).Run()
 }
 
 // Kill kills the Wineprefix.
@@ -53,13 +61,16 @@ func (p *Prefix) Kill() error {
 }
 
 // Init returns a [Cmd] for initializating the Wineprefix.
+//
+// This procedure is done automatically as necessary by invoking any
+// Wine application.
 func (p *Prefix) Init() *Cmd {
 	c := p.Boot(BootInit)
 	c.headless = true
 	return c
 }
 
-// Update returns a [Cmd] for updating the Wineprefix.
+// Update fully re-initalizes the Wineprefix data using Wineboot.
 func (p *Prefix) Update() *Cmd {
 	c := p.Boot(BootUpdate)
 	c.headless = true
