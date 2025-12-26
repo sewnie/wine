@@ -20,8 +20,6 @@ import (
 	"github.com/sewnie/wine/peutil"
 )
 
-const Repo = "https://github.com/doitsujin/dxvk"
-
 // EnvOverride appends DXVK DLL overrides to the given Wineprefix's
 // environment variables.
 func EnvOverride(pfx *wine.Prefix, enabled bool) {
@@ -66,14 +64,36 @@ func Restore(pfx *wine.Prefix) error {
 	return pfx.Wine("wineboot", "-u").Run()
 }
 
-// URL returns the DXVK tarball URL for the given version.
+// URL returns the DXVK tarball URL for the given
+// version at https://github.com/doitsujin/dxvk.
+//
+// If the given version was prefixed with "Sarek-", the returned URL
+// will be for https://github.com/pythonlover02/DXVK-Sarek. The Async
+// variant for DXVK-Sarek will also be used if the version was suffixed
+// with -async. This behavior is relfected in [Version].
 func URL(ver string) string {
-	return fmt.Sprintf("%s/releases/download/v%[2]s/dxvk-%[2]s.tar.gz", Repo, ver)
+	if v, ok := strings.CutPrefix(ver, "Sarek-"); ok {
+		name := "dxvk-sarek"
+		v, ok := strings.CutSuffix(v, "-async")
+		if ok {
+			name += "-async"
+		}
+
+		return fmt.Sprintf("%s/releases/download/v%[2]s/%[3]s-v%[2]s.tar.gz",
+			"https://github.com/pythonlover02/DXVK-Sarek", v, name)
+	}
+
+	return fmt.Sprintf("%s/releases/download/v%[2]s/dxvk-%[2]s.tar.gz",
+		"https://github.com/doitsujin/dxvk", ver)
 }
 
 // Version returns the DXVK version of the system32 d3d11 DLL installed
 // in the wineprefix. The 'd3d11' DLL is chosen as it is one of
 // the only DXVK DLLs that contain versioning.
+//
+// If the currently installed DXVK implementation is from Sarek, the
+// returned version will be prefixed with "Sarek-", and suffixed with
+// "-async" if it is the async variant.
 //
 // If other DLLs such as d3d8 are needed to track, it is reccomended
 // to store the installed version of DXVK prior to [Extract].
@@ -83,8 +103,8 @@ func Version(pfx *wine.Prefix) (string, error) {
 }
 
 // Only valid for d3d9, d3d11 & dxgi
-func dllVersion(name string) (string, error) {
-	f, err := peutil.Open(name)
+func dllVersion(dllName string) (string, error) {
+	f, err := peutil.Open(dllName)
 	if err != nil {
 		return "", err
 	}
@@ -98,17 +118,32 @@ func dllVersion(name string) (string, error) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		head := []byte("DXVK: \x00v")
-		start := bytes.Index(b, head)
-		if start < 0 {
+		// Game always appears before the DXVK version.
+		head := []byte("Game: \x00")
+		preStart := bytes.Index(b, head)
+		if preStart < 0 {
 			break
 		}
-		verStart := start + len(head)
-		verEnd := bytes.IndexByte(b[verStart:], 0)
+		infoStart := preStart + len(head)
+		infoEnd := bytes.IndexByte(b[infoStart:], 0)
+		if infoEnd < 0 {
+			break
+		}
+		infoEnd += infoStart
+
+		verEnd := bytes.IndexByte(b[infoEnd+1:], 0)
 		if verEnd < 0 {
 			break
 		}
-		return string(b[verStart : verStart+verEnd]), nil
+		// exclude v prefix, null, and result remainder
+		version := string(b[infoEnd+2 : infoEnd+verEnd+2])
+
+		prefix := b[infoStart : infoEnd-2]
+		if variant, ok := bytes.CutPrefix(prefix, []byte("DXVK-")); ok {
+			return fmt.Sprintf("%s-%s", variant, version), nil
+		}
+
+		return version, nil
 	}
 
 	return "", nil
