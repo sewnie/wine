@@ -44,7 +44,8 @@ func (p *Prefix) Boot(args ...string) *Cmd {
 
 // Start ensures the Wineprefix's server is running and is
 // prepared to run any Wine application. The persistence is
-// automatically set to 32.
+// automatically set to 32. If the Wineserver is already running,
+// this will return nil.
 //
 // If the Wineprefix is out of date, it will be updated here.
 //
@@ -60,6 +61,9 @@ func (p *Prefix) Start() error {
 		return p.Update()
 	}
 
+	if p.Running() {
+		return nil
+	}
 	return p.startServer()
 }
 
