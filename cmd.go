@@ -131,7 +131,7 @@ func (c *Cmd) Wait() error {
 		// as this Cmd could be the first process of the wineserver.
 		_ = c.prefix.Kill()
 		if err == nil {
-			_ = c.prefix.Start()
+			return c.prefix.startServer()
 		}
 	}
 

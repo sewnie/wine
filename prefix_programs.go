@@ -1,7 +1,6 @@
 package wine
 
 import (
-	"fmt"
 	"log/slog"
 	"os/exec"
 )
@@ -54,18 +53,22 @@ func (p *Prefix) Boot(args ...string) *Cmd {
 func (p *Prefix) Start() error {
 	u, err := p.NeedsUpdate()
 	if err != nil {
+		// let wineboot handle it
 		slog.Warn("wine: Could not determine Wineprefix update state", "err", err)
 	} else if u {
-		slog.Info("wine: Updating Wineprefix")
-		if err := p.Update(); err != nil {
-			return fmt.Errorf("update: %w", err)
-		}
+		// automatically starts server in [cmd.Wait]
+		return p.Update()
 	}
 
-	err = p.Server(ServerPersistent, "32")
+	return p.startServer()
+}
+
+func (p *Prefix) startServer() error {
+	err := p.Server(ServerPersistent, "32")
 	if err != nil {
 		return err
 	}
+	// prepares wine application environment
 	return p.Boot(BootRestart).Run()
 }
 
