@@ -15,7 +15,7 @@ import (
 // Errors that can occur include failure to lookup installation
 // and existence of the wineprefix directory.
 func (p *Prefix) NeedsUpdate() (bool, error) {
-	stamp, err := p.configUpdated()
+	updated, err := p.updated()
 	if err != nil {
 		// Fetching Wineprefix .update-timestamp failed,
 		// could be permission denied or another I/O error such
@@ -24,13 +24,13 @@ func (p *Prefix) NeedsUpdate() (bool, error) {
 		// and make Wine handle the error if necssary.
 		return true, nil
 	}
-
-	updated, err := p.updated()
-	if err != nil {
-		return true, fmt.Errorf("timestamp: %w", err)
-	}
 	if updated.IsZero() { // disabled
 		return false, nil
+	}
+
+	stamp, err := p.configUpdated()
+	if err != nil {
+		return true, fmt.Errorf("config: %w", err)
 	}
 
 	// programs/wineboot/wineboot.c:update_timestamp
