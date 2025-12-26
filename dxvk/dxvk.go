@@ -136,7 +136,7 @@ func dllVersion(dllName string) (string, error) {
 			break
 		}
 		// exclude v prefix, null, and result remainder
-		version := string(b[infoEnd+2 : infoEnd+verEnd+2])
+		version := string(b[infoEnd+2 : infoEnd+verEnd+3])
 
 		prefix := b[infoStart : infoEnd-2]
 		if variant, ok := bytes.CutPrefix(prefix, []byte("DXVK-")); ok {
