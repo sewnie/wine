@@ -29,7 +29,7 @@ func (p *Prefix) NeedsUpdate() (bool, error) {
 	}
 
 	// programs/wineboot/wineboot.c:update_timestamp
-	return stamp.Equal(updated), nil
+	return !stamp.Equal(updated), nil
 }
 
 func (p *Prefix) configUpdated() (time.Time, error) {
