@@ -57,9 +57,7 @@ func (p *Prefix) Start() error {
 		// let wineboot handle it
 		slog.Warn("wine: Could not determine Wineprefix update state", "err", err)
 	} else if u {
-		if p.Running() {
-			p.Kill() // prevent wineserver mismatch
-		}
+		slog.Info("wine: Updating Wine Prefix")
 		// automatically starts server in [cmd.Wait]
 		return p.Update()
 	}

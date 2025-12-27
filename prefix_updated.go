@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // NeedsUpdate reports whether the Wineprefix requires a full
@@ -15,7 +14,7 @@ import (
 // Errors that can occur include failure to lookup installation
 // and existence of the wineprefix directory.
 func (p *Prefix) NeedsUpdate() (bool, error) {
-	updated, err := p.updated()
+	prefixUpdate, err := p.updated()
 	if err != nil {
 		// Fetching Wineprefix .update-timestamp failed,
 		// could be permission denied or another I/O error such
@@ -24,48 +23,48 @@ func (p *Prefix) NeedsUpdate() (bool, error) {
 		// and make Wine handle the error if necssary.
 		return true, nil
 	}
-	if updated.IsZero() { // disabled
+	if prefixUpdate < 0 { // disabled
 		return false, nil
 	}
 
-	stamp, err := p.configUpdated()
+	installStamp, err := p.configUpdated()
 	if err != nil {
 		return true, fmt.Errorf("config: %w", err)
 	}
 
 	// programs/wineboot/wineboot.c:update_timestamp
-	return !stamp.Equal(updated), nil
+	return prefixUpdate != installStamp, nil
 }
 
-func (p *Prefix) configUpdated() (time.Time, error) {
+func (p *Prefix) configUpdated() (int64, error) {
 	w := p.Wine("wine")
 	if w.Err != nil {
-		return time.Time{}, w.Err
+		return -1, w.Err
 	}
 
 	fi, err := os.Stat(filepath.Join(
 		filepath.Dir(w.Path), "../share/wine/wine.inf"))
 	if err != nil {
-		return time.Time{}, err
+		return -1, err
 	}
-	return fi.ModTime(), nil
+	return fi.ModTime().Unix(), nil
 }
 
-func (p *Prefix) updated() (time.Time, error) {
+func (p *Prefix) updated() (int64, error) {
 	b, err := os.ReadFile(filepath.Join(p.dir, ".update-timestamp"))
 	if err != nil {
-		return time.Time{}, err
+		return -1, err
 	}
 	content := strings.TrimSpace(string(b))
 
 	if strings.HasPrefix(content, "disable") {
-		return time.Time{}, nil
+		return -1, nil
 	}
 
-	v, err := strconv.ParseInt(content, 10, 64)
+	u, err := strconv.ParseInt(content, 10, 64)
 	if err != nil {
-		return time.Time{}, err
+		return -1, err
 	}
 
-	return time.Unix(v, 0), nil
+	return u, nil
 }
