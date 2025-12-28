@@ -7,6 +7,7 @@ import (
 
 func TestRegistryExport(t *testing.T) {
 	root := testdata()
+	root.Query(`Foo\Bar\Baz`).SetValue("Value O", nil)
 	buf := new(bytes.Buffer) // error cannot occur here
 
 	if err := root.exportSystem(buf); err != nil {
@@ -27,7 +28,6 @@ func TestRegistryExport(t *testing.T) {
 			t.Log(x)
 		}
 	})
-
 }
 
 const userExportedSys = `WINE REGISTRY Version 2
@@ -98,4 +98,7 @@ const userExported = `Windows Registry Editor Version 5.00
 "Value K"=hex(5):12,34,56,78
 "Value L"=hex:
 "Value M"=hex(000000ff):de
+"Value O"=-
+
+[-HKEY_CURRENT_USER\Foo\Quz]
 `

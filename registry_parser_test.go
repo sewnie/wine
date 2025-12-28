@@ -16,6 +16,32 @@ func TestRegistryParse(t *testing.T) {
 	}
 }
 
+func TestRegistryImport(t *testing.T) {
+	const data = `Windows Registry Editor Version 5.00
+
+[-HKEY_LOCAL_MACHINE]
+
+[HKEY_CURRENT_USER]
+"Value A"=-
+`
+
+	var root RegistryKey
+	root.Add("HKEY_LOCAL_MACHINE").SetValue("Value A", 0xdeadbeef)
+	root.Add("HKEY_CURRENT_USER").SetValue("Value A", 0xdeadbeef)
+
+	if err := root.Import(strings.NewReader(data)); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if !root.Equal(&RegistryKey{
+		Name:    "",
+		Subkeys: []*RegistryKey{{Name: "HKEY_CURRENT_USER"}},
+	}) {
+		t.Fatalf("expected key deletion, got %s",
+			registryKeyJSON(&root))
+	}
+}
+
 const userData = `WINE REGISTRY Version 2
 ;; All keys relative to REGISTRY\\User\\S-1-5-21-0-0-0-1000
 

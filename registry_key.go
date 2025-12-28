@@ -63,31 +63,31 @@ func (k *RegistryKey) GetValue(name string) *RegistryValue {
 }
 
 // SetValue sets a named value in k with the specified data. The name may be
-// an empty string to specify the (Default) key, and the data may be nil
-// to delete the value, if it exists.
+// an empty string to specify the (Default) key. See [RegistryData] for
+// more information.
 //
 // If the named value already exists in k, only the data will be set, otherwise
 // a new value will be added to k with the given name and data.
 func (k *RegistryKey) SetValue(name string, data RegistryData) (ret *RegistryValue) {
+	if v := k.GetValue(name); v != nil {
+		v.Data = data
+		return v
+	}
+	k.Values = append(k.Values, RegistryValue{name, data})
+	return &k.Values[len(k.Values)-1]
+}
+
+// DeleteValue deletes the named value from k and reports whether the
+// value was found and successfully deleted.
+func (k *RegistryKey) DeleteValue(name string) bool {
 	for i, v := range k.Values {
 		if v.Name != name {
 			continue
 		}
-		if data == nil {
-			k.Values = append(k.Values[:i], k.Values[i+1:]...)
-			break
-		}
-		ret = &k.Values[i]
+		k.Values = append(k.Values[:i], k.Values[i+1:]...)
+		return true
 	}
-	if data == nil {
-		return nil
-	}
-	if ret != nil && data != nil {
-		ret.Data = data
-		return ret
-	}
-	k.Values = append(k.Values, RegistryValue{name, data})
-	return &k.Values[len(k.Values)-1]
+	return false
 }
 
 // Add will find the registry key located at path, relative to k,
@@ -148,6 +148,7 @@ func (k *RegistryKey) Delete(path string) bool {
 	}
 	if query.parent == nil {
 		k = nil
+		return true
 	}
 
 	for i, subkey := range query.parent.Subkeys {

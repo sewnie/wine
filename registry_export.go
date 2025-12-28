@@ -21,6 +21,9 @@ var backslasher = strings.NewReplacer(`\`, `\\`)
 // formatting a type will not be returned if k's origin was serialized
 // from ParseRegistry.
 //
+// If there are any registry keys with no values and subkeys, it will
+// be marked as deleted.
+//
 // Registry keys that are links to other keys will not be exported here.
 func (k *RegistryKey) Export(w io.Writer) error {
 	_, err := io.WriteString(w, headerExport+"\n")
@@ -57,6 +60,11 @@ func (k *RegistryKey) export(wine bool, w io.Writer) error {
 	if k.link && !wine {
 		return nil
 	}
+
+	if len(k.Values) == 0 && len(k.Subkeys) == 0 && !wine {
+		_, err := fmt.Fprintf(w, "\n[-%s]\n", encodeSurrogate(k.Path()))
+		return err
+	}
 	if len(k.Values) > 0 || (wine && !k.modified.IsZero()) {
 		var err error
 		if !wine {
@@ -79,9 +87,7 @@ func (k *RegistryKey) export(wine bool, w io.Writer) error {
 		if err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, "\n"); err != nil {
-			return err
-		}
+
 	}
 
 	for _, sk := range k.Subkeys {
@@ -100,6 +106,10 @@ func (rv RegistryValue) export(w io.Writer, wine bool) error {
 		pos int
 	)
 
+	if wine && rv.Data == nil {
+		return nil
+	}
+
 	if rv.Name != "" {
 		pos, err = fmt.Fprintf(w, `"%s"=`, rv.Name)
 	} else {
@@ -113,12 +123,14 @@ func (rv RegistryValue) export(w io.Writer, wine bool) error {
 	pos += 6
 
 	switch d := rv.Data.(type) {
+	case nil:
+		_, err = io.WriteString(w, "-")
 	case string:
 		_, err = io.WriteString(w, strconv.Quote(d))
 	case ExpandableString:
 		if wine {
 			_, err = io.WriteString(w, `str(2):`+strconv.Quote(string(d)))
-			return err
+			break
 		}
 		_, err = io.WriteString(w, `hex(2):`)
 		payload = encodeW(string(d) + "\x00")
@@ -187,6 +199,10 @@ func (rv RegistryValue) export(w io.Writer, wine bool) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if _, err := io.WriteString(w, "\n"); err != nil {
+		return err
 	}
 	return nil
 }

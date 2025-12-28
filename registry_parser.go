@@ -101,6 +101,11 @@ func (k *RegistryKey) Import(r io.Reader) error {
 			if err != nil {
 				return fmt.Errorf("decode path: %w", err)
 			}
+			if path, ok := strings.CutPrefix(path, "-"); ok {
+				k.Delete(path)
+				subkey = nil
+				continue
+			}
 			subkey = k.Add(path)
 			if subkey == nil {
 				return errors.New("expected subkey traversal")
@@ -137,8 +142,12 @@ func (k *RegistryKey) Import(r io.Reader) error {
 			if err != nil {
 				return fmt.Errorf("parse %s: %w", name, err)
 			}
+			if data == nil {
+				subkey.DeleteValue(name)
+				continue
+			}
 
-			subkey.Values = append(subkey.Values, RegistryValue{name, data})
+			subkey.SetValue(name, data)
 		case '\n':
 			subkey = nil
 		}
@@ -151,12 +160,15 @@ func parseData(value string) (RegistryData, error) {
 	if len(value) == 0 {
 		return nil, errors.New("expected data")
 	}
-	if value[0] == '"' {
+	switch value[0] {
+	case '"':
 		s, err := strconv.Unquote(value)
 		if err != nil {
 			return nil, err
 		}
 		return s, nil
+	case '-':
+		return nil, nil
 	}
 
 	i := strings.IndexByte(value, ':')

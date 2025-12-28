@@ -50,8 +50,9 @@ func TestRegistryOperations(t *testing.T) {
 
 	t.Run("delete value", func(t *testing.T) {
 		k := root.Query("Baz")
-		k.SetValue("Value A", nil)
-
+		if !k.DeleteValue("Value A") {
+			t.Fatal("expected successful deletion")
+		}
 		if len(k.Values) != 0 {
 			t.Fatalf("expected no values, got %v", k.Values)
 		}

@@ -26,6 +26,10 @@ type InternalBytes struct {
 
 // RegistryData represents a RegistryValue's data.
 //
+// Setting the data to nil will effectively delete
+// the data during exporting, but will not delete
+// the registry key.
+//
 // Known registry types and their Go types:
 //   - REG_SZ = string
 //   - REG_MULTI_SZ aka hex(7) = []string
