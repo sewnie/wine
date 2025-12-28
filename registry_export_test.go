@@ -2,6 +2,8 @@ package wine
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -28,6 +30,38 @@ func TestRegistryExport(t *testing.T) {
 			t.Log(x)
 		}
 	})
+}
+
+func TestRegistryPrefixExport(t *testing.T) {
+	reg, err := testPfx.Registry()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	s, err := os.ReadFile(filepath.Join(testPfx.dir, "system.reg"))
+	if err != nil {
+		t.Errorf("unexpected system read error: %v", err)
+	}
+
+	u, err := os.ReadFile(filepath.Join(testPfx.dir, "user.reg"))
+	if err != nil {
+		t.Errorf("unexpected system read error: %v", err)
+	}
+
+	buf := bytes.Buffer{}
+
+	_ = reg.Machine.exportSystem(&buf)
+	if b := buf.Bytes(); !bytes.Equal(b, []byte(s)) {
+		t.Log(string(b))
+		t.Fatalf("expected machine key export match")
+	}
+
+	buf.Reset()
+	_ = reg.CurrentUser.exportSystem(&buf)
+	if b := buf.Bytes(); !bytes.Equal(b, []byte(u)) {
+		t.Log(string(b))
+		t.Fatalf("expected user key export match")
+	}
 }
 
 const userExportedSys = `WINE REGISTRY Version 2

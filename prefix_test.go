@@ -29,8 +29,6 @@ func TestPrefixInit(t *testing.T) {
 }
 
 func TestPrefixRunning(t *testing.T) {
-	t.Skip()
-
 	if testPfx.Running() {
 		t.Log("wineserver running on system, killing")
 		if err := testPfx.Kill(); err != nil {
