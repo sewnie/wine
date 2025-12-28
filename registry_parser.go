@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	unbackslasher = strings.NewReplacer(`\\`, `\`)
+	unbackslasher = strings.NewReplacer(`\\`, `\`, `\"`, `"`)
 	unicoder      = regexp.MustCompile(`\\x([0-9a-fA-F]{4})`)
 )
 
@@ -162,11 +162,7 @@ func parseData(value string) (RegistryData, error) {
 	}
 	switch value[0] {
 	case '"':
-		s, err := strconv.Unquote(value)
-		if err != nil {
-			return nil, err
-		}
-		return s, nil
+		return unquote(value), nil
 	case '-':
 		return nil, nil
 	}

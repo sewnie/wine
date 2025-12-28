@@ -15,7 +15,7 @@ const (
 	headerExport = `Windows Registry Editor Version 5.00`
 )
 
-var backslasher = strings.NewReplacer(`\`, `\\`)
+var backslasher = strings.NewReplacer(`\`, `\\`, `"`, `\"`)
 
 // Export writes the regedit export of k to w. Any error regarding
 // formatting a type will not be returned if k's origin was serialized
@@ -126,7 +126,7 @@ func (rv RegistryValue) export(w io.Writer, wine bool) error {
 	case nil:
 		_, err = io.WriteString(w, "-")
 	case string:
-		_, err = io.WriteString(w, strconv.Quote(d))
+		_, err = io.WriteString(w, `"`+backslasher.Replace(d)+`"`)
 	case ExpandableString:
 		if wine {
 			_, err = io.WriteString(w, `str(2):`+strconv.Quote(string(d)))
