@@ -49,7 +49,11 @@ func (p *Prefix) Boot(args ...string) *Cmd {
 // Prepare hides it for the user and prints a log entry instead.
 func (p *Prefix) Prepare() error {
 	u, err := p.NeedsUpdate()
-	if err != nil && u {
+	if err != nil {
+		// let wineboot handle it
+		slog.Warn("wine: Failed to determine Prefix status", "err", err)
+	} else if u {
+		// automatically starts server in [cmd.Wait]
 		slog.Info("wine: Updating Wine Prefix")
 		return p.Update()
 	}
