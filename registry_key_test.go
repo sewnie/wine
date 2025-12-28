@@ -37,7 +37,7 @@ func TestRegistryOperations(t *testing.T) {
 		}
 	})
 
-	t.Run("edit", func(t *testing.T) {
+	t.Run("edit value", func(t *testing.T) {
 		k := root.Query("Baz")
 		k.SetValue("Value A", uint64(0xdeadbeef))
 		if !k.Equal(&RegistryKey{
@@ -45,6 +45,15 @@ func TestRegistryOperations(t *testing.T) {
 			Values: []RegistryValue{{"Value A", uint64(0xdeadbeef)}},
 		}) {
 			t.Fatalf("expected key match, got %v", k)
+		}
+	})
+
+	t.Run("delete value", func(t *testing.T) {
+		k := root.Query("Baz")
+		k.SetValue("Value A", nil)
+
+		if len(k.Values) != 0 {
+			t.Fatalf("expected no values, got %v", k.Values)
 		}
 	})
 

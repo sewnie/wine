@@ -64,14 +64,27 @@ func (k *RegistryKey) GetValue(name string) *RegistryValue {
 
 // SetValue sets a named value in k with the specified data. The name may be
 // an empty string to specify the (Default) key, and the data may be nil
-// to represent no data (REG_NONE).
+// to delete the value, if it exists.
 //
 // If the named value already exists in k, only the data will be set, otherwise
 // a new value will be added to k with the given name and data.
-func (k *RegistryKey) SetValue(name string, data RegistryData) *RegistryValue {
-	if v := k.GetValue(name); v != nil {
-		v.Data = data
-		return v
+func (k *RegistryKey) SetValue(name string, data RegistryData) (ret *RegistryValue) {
+	for i, v := range k.Values {
+		if v.Name != name {
+			continue
+		}
+		if data == nil {
+			k.Values = append(k.Values[:i], k.Values[i+1:]...)
+			break
+		}
+		ret = &k.Values[i]
+	}
+	if data == nil {
+		return nil
+	}
+	if ret != nil && data != nil {
+		ret.Data = data
+		return ret
 	}
 	k.Values = append(k.Values, RegistryValue{name, data})
 	return &k.Values[len(k.Values)-1]

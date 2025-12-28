@@ -23,7 +23,7 @@ func TestPrefixInit(t *testing.T) {
 		t.Errorf("unexpected dir error: %v", err)
 	}
 
-	if err := testPfx.Init().Run(); err != nil {
+	if err := testPfx.Init(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
