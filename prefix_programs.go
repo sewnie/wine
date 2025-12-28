@@ -79,6 +79,9 @@ func (p *Prefix) startServer() error {
 
 // Kill kills the Wineprefix.
 func (p *Prefix) Kill() error {
+	if p.Running() {
+		return p.Boot(BootKill).Run()
+	}
 	return p.Server(ServerKill)
 }
 
