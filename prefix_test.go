@@ -46,6 +46,9 @@ func TestPrefixRunning(t *testing.T) {
 	}
 
 	t.Run("GUI application", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip()
+		}
 		if err := testPfx.Wine("regedit").Run(); err != nil {
 			t.Errorf("unexpected start error: %v", err)
 		}
