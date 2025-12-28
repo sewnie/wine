@@ -42,33 +42,33 @@ func (p *Prefix) Boot(args ...string) *Cmd {
 	return p.Wine("wineboot", args...)
 }
 
+// Prepare ensures the Wineprefix is up to date with the given
+// wine root / installation and prepares it for running wine applications.
+//
+// Wine applications automatically update the Prefix, but show a dialog window.
+// Prepare hides it for the user and prints a log entry instead.
+func (p *Prefix) Prepare() error {
+	u, err := p.NeedsUpdate()
+	if err != nil && u {
+		slog.Info("wine: Updating Wine Prefix")
+		return p.Update()
+	}
+
+	return p.Start()
+}
+
 // Start ensures the Wineprefix's server is running and is
 // prepared to run any Wine application. The persistence is
 // automatically set to 32. If the Wineserver is already running,
 // this will return nil.
 //
-// If the Wineprefix is out of date, it will be updated here.
-//
-// This procedure is done automatically as necessary by invoking any
-// Wine application.
+// Wine applications will do this by default, but will have a few
+// seconds to run as to prepare the environment, which Start could
+// fulfill prior to running applications.
 func (p *Prefix) Start() error {
-	u, err := p.NeedsUpdate()
-	if err != nil {
-		// let wineboot handle it
-		slog.Warn("wine: Could not determine Wineprefix update state", "err", err)
-	} else if u {
-		slog.Info("wine: Updating Wine Prefix")
-		// automatically starts server in [cmd.Wait]
-		return p.Update()
-	}
-
 	if p.Running() {
 		return nil
 	}
-	return p.startServer()
-}
-
-func (p *Prefix) startServer() error {
 	err := p.Server(ServerPersistent, "32")
 	if err != nil {
 		return err
