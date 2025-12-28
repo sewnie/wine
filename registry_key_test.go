@@ -76,6 +76,29 @@ func TestRegistryOperations(t *testing.T) {
 		}
 	})
 
+	t.Run("divorce", func(t *testing.T) {
+		new := NewRegistryKey(`HKCU\Quuz`)
+		new.SetValue("Value A", uint64(0xdeadbeef))
+		new.Add("Foo").SetValue("Value B", "Something")
+
+		root := NewRegistryKey(`HKCU\`)
+		root.AddKey(new)
+
+		if !root.Equal(&RegistryKey{
+			Name: "HKEY_CURRENT_USER",
+			Subkeys: []*RegistryKey{{
+				Name:   "Quuz",
+				Values: []RegistryValue{{"Value A", uint64(0xdeadbeef)}},
+				Subkeys: []*RegistryKey{{
+					Name:   "Foo",
+					Values: []RegistryValue{{"Value B", "Something"}},
+				}},
+			}},
+		}) {
+			t.Fatalf("expected key match, got %v", root)
+		}
+	})
+
 	t.Run("path", func(t *testing.T) {
 		if path := root.Query("Baz").Path(); path != `HKEY_CURRENT_USER\Baz` {
 			t.Fatalf("expected absolute key path, got %s", path)

@@ -34,11 +34,12 @@ type RegistryValue struct {
 }
 
 // NewRegistryKey creates a registry key and its parents based
-// on the absolute registry path.
+// on the absolute registry path. The path must contain a backslash,
+// even if it is the root key.
 func NewRegistryKey(path string) *RegistryKey {
 	i := strings.Index(path, `\`)
 	if i < 0 {
-		i = len(path)
+		i = len(path) - 1
 	}
 
 	parent := RegistryKey{Name: path[:i]}
@@ -96,6 +97,18 @@ func (k *RegistryKey) Add(path string) *RegistryKey {
 	return k.queryPath(path, true)
 }
 
+// AddKey will resolve the key a to k, adding its full path
+// and parent path, including all of the subkeys.
+func (k *RegistryKey) AddKey(a *RegistryKey) *RegistryKey {
+	new := k.Root().queryPath(a.relative(), true)
+	new.Values = a.Values
+
+	for _, sk := range a.Subkeys {
+		new.AddKey(sk)
+	}
+	return new
+}
+
 // Parent returns k's parent registry key. The parent can be null
 // if k is a root registry key such as HKEY_CURRENT_USER.
 func (k *RegistryKey) Parent() *RegistryKey {
@@ -116,6 +129,20 @@ func (k *RegistryKey) Path() string {
 		return k.Name
 	}
 	return k.parent.Path() + `\` + k.Name
+}
+
+// variation of Path() but excludes the root key
+func (k *RegistryKey) relative() string {
+	if k.parent == nil {
+		return ""
+	}
+
+	path := k.parent.relative()
+	if path == "" {
+		return k.Name
+	}
+
+	return path + `\` + k.Name
 }
 
 func (k *RegistryKey) pathWine() (path string) {
