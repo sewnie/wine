@@ -129,11 +129,10 @@ func (c *Cmd) Wait() error {
 	err := c.Cmd.Wait()
 
 	if c.headless && c.prefix.Running() {
-		// Restart the wineserver to prevent new applications from being headless,
-		// as this Cmd could be the first process of the wineserver.
+		// Restart the wineserver as it was initialized headless.
 		_ = c.prefix.Server(ServerKill)
 		if err == nil {
-			return c.prefix.startServer()
+			return c.prefix.Start()
 		}
 	}
 
