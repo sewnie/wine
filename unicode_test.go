@@ -85,8 +85,8 @@ func TestEscape(t *testing.T) {
 		},
 		{
 			name:     "unescaped",
-			input:    "\001\"",
-			expected: "\001\\\"",
+			input:    "\001\"\n",
+			expected: "\001\\\"\\n",
 			quote:    true,
 			raw:      true,
 		},
