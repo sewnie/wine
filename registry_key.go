@@ -100,6 +100,9 @@ func (k *RegistryKey) Add(path string) *RegistryKey {
 // AddKey will resolve the key a to k, adding its full path
 // and parent path, including all of the subkeys.
 func (k *RegistryKey) AddKey(a *RegistryKey) *RegistryKey {
+	if a == nil {
+		return nil
+	}
 	new := k.Root().queryPath(a.relative(), true)
 	new.Values = a.Values
 
@@ -154,7 +157,7 @@ func (k *RegistryKey) pathWine() (path string) {
 	// exclude the root
 	for k.parent != nil && k.parent.parent != nil {
 		k = k.parent
-		path = k.Name + `\\` + path
+		path = k.Name + `\` + path
 	}
 	return
 }

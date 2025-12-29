@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 	"unicode/utf16"
 )
@@ -14,8 +13,6 @@ const (
 	headerWine   = `WINE REGISTRY Version 2`
 	headerExport = `Windows Registry Editor Version 5.00`
 )
-
-var backslasher = strings.NewReplacer(`\`, `\\`, `"`, `\"`)
 
 // Export writes the regedit export of k to w. Any error regarding
 // formatting a type will not be returned if k's origin was serialized
@@ -62,16 +59,17 @@ func (k *RegistryKey) export(wine bool, w io.Writer) error {
 	}
 
 	if len(k.Values) == 0 && len(k.Subkeys) == 0 && !wine {
-		_, err := fmt.Fprintf(w, "\n[-%s]\n", encodeSurrogate(k.Path()))
+		_, err := fmt.Fprintf(w, "\n[-%s]\n", Escape(k.Path(), false, !wine))
 		return err
 	}
 	if len(k.Values) > 0 || (wine && !k.modified.IsZero()) {
 		var err error
 		if !wine {
-			_, err = fmt.Fprintf(w, "\n[%s]\n", encodeSurrogate(k.Path()))
+			// If exporting, the raw bytes are given out
+			_, err = fmt.Fprintf(w, "\n[%s]\n", Escape(k.Path(), false, !wine))
 		} else {
 			_, err = fmt.Fprintf(w, "\n[%s] %d\n#time=%x\n",
-				encodeSurrogate(k.pathWine()), k.modified.Unix(), k.modified)
+				Escape(k.pathWine(), false, !wine), k.modified.Unix(), k.modified)
 		}
 		if err != nil {
 			return err
@@ -126,10 +124,11 @@ func (rv RegistryValue) export(w io.Writer, wine bool) error {
 	case nil:
 		_, err = io.WriteString(w, "-")
 	case string:
-		_, err = io.WriteString(w, `"`+backslasher.Replace(d)+`"`)
+		// Dumps normal and quotes in server/registry.c
+		_, err = io.WriteString(w, `"`+Escape(d, true, false)+`"`)
 	case ExpandableString:
 		if wine {
-			_, err = io.WriteString(w, `str(2):`+strconv.Quote(string(d)))
+			_, err = io.WriteString(w, `str(2):"`+Escape(string(d), true, false)+`"`)
 			break
 		}
 		_, err = io.WriteString(w, `hex(2):`)
@@ -145,7 +144,7 @@ func (rv RegistryValue) export(w io.Writer, wine bool) error {
 			return err
 		}
 		for _, s := range d {
-			_, err := io.WriteString(w, backslasher.Replace(s)+`\0`)
+			_, err := io.WriteString(w, Escape(s, false, false)+`\0`)
 			if err != nil {
 				return err
 			}
@@ -211,18 +210,4 @@ func encodeW(s string) []byte {
 	buf := bytes.Buffer{}
 	_ = binary.Write(&buf, binary.LittleEndian, utf16.Encode([]rune(s)))
 	return buf.Bytes()
-}
-
-func encodeSurrogate(input string) (s string) {
-	for _, r := range input {
-		if r < 0xFFFF {
-			s += string(r)
-			continue
-		}
-
-		for _, unit := range utf16.Encode([]rune{r}) {
-			s += fmt.Sprintf("\\x%04x", unit)
-		}
-	}
-	return
 }

@@ -12,7 +12,8 @@ func TestRegistryParse(t *testing.T) {
 	}
 
 	if !k.Equal(testdata()) {
-		t.Errorf("expected equal match, got %s", registryKeyJSON(&k))
+		t.Errorf("expected equal match %s, got %s",
+			registryKeyJSON(&k), registryKeyJSON(testdata()))
 	}
 }
 

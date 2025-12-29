@@ -4,20 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 	"unicode/utf16"
-)
-
-var (
-	unbackslasher = strings.NewReplacer(`\\`, `\`, `\"`, `"`)
-	unicoder      = regexp.MustCompile(`\\x([0-9a-fA-F]{4})`)
 )
 
 // ParseRegistryFile is a helper for ParseRegistry to parse from a registry file.
@@ -95,12 +88,7 @@ func (k *RegistryKey) Import(r io.Reader) error {
 				return strconv.ErrSyntax
 			}
 
-			name := `"` + unicoder.ReplaceAllString(line[1:i], `\u$1`) + `"`
-			var path string
-			err := json.Unmarshal([]byte(name), &path)
-			if err != nil {
-				return fmt.Errorf("decode path: %w", err)
-			}
+			path := Unescape(line[1:i])
 			if path, ok := strings.CutPrefix(path, "-"); ok {
 				k.Delete(path)
 				subkey = nil
@@ -182,7 +170,7 @@ func parseData(value string) (RegistryData, error) {
 	case "str(2)":
 		return ExpandableString(unquote(data)), nil
 	case "str(7)":
-		s := strings.Split(unquote(data), `\0`)
+		s := strings.Split(unquote(data), "\x00")
 		return s[:len(s)-1], nil // foo\0bar\0 -> [foo, bar, ""]
 	}
 
@@ -275,7 +263,6 @@ func decodeW(b []byte) (string, error) {
 	return string(utf16.Decode(ints)), nil
 }
 
-// Preferrred over strconv.Unquote because it thinks too much
 func unquote(s string) string {
-	return unbackslasher.Replace(s[1 : len(s)-1])
+	return Unescape(s[1 : len(s)-1])
 }
