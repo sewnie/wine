@@ -62,6 +62,7 @@ func (k *RegistryKey) export(wine bool, w io.Writer) error {
 		_, err := fmt.Fprintf(w, "\n[-%s]\n", Escape(k.Path(), false, !wine))
 		return err
 	}
+	// TODO: regedit randomly decides if keys with no values have their own line
 	if len(k.Values) > 0 || (wine && !k.modified.IsZero()) {
 		var err error
 		if !wine {
@@ -125,7 +126,7 @@ func (rv RegistryValue) export(w io.Writer, wine bool) error {
 		_, err = io.WriteString(w, "-")
 	case string:
 		// Dumps normal and quotes in server/registry.c
-		_, err = io.WriteString(w, `"`+Escape(d, true, false)+`"`)
+		_, err = io.WriteString(w, `"`+Escape(d, true, !wine)+`"`)
 	case ExpandableString:
 		if wine {
 			_, err = io.WriteString(w, `str(2):"`+Escape(string(d), true, false)+`"`)

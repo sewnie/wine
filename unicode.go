@@ -101,6 +101,9 @@ func Unescape(src string) string {
 	return sb.String()
 }
 
+// Quote determines if quotes are escaped.
+// Raw determines if surrogates are to be encoded raw and
+// escape sequences encoded as is.
 func Escape(src string, quote bool, raw bool) string {
 	if src == "" {
 		return ""
@@ -137,6 +140,10 @@ func Escape(src string, quote bool, raw bool) string {
 		}
 
 		if c < 32 {
+			if raw {
+				sb.WriteRune(rune(c))
+				continue
+			}
 			switch c {
 			case '\a':
 				sb.WriteString(`\a`)
@@ -164,7 +171,7 @@ func Escape(src string, quote bool, raw bool) string {
 			continue
 		}
 
-		if !raw && c == '\\' {
+		if (!raw || quote) && c == '\\' {
 			sb.WriteByte('\\')
 		}
 		if quote && c == '"' {

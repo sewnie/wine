@@ -32,6 +32,11 @@ func TestUnescape(t *testing.T) {
 			expected: `"C:\Foo" -help`,
 		},
 		{
+			name:     "escaped octal",
+			input:    `@ByteArray(\1)`,
+			expected: "@ByteArray(\001)",
+		},
+		{
 			name:     "registry",
 			input:    `Software\\Foobar`,
 			expected: `Software\Foobar`,
@@ -79,6 +84,13 @@ func TestEscape(t *testing.T) {
 			raw:      false,
 		},
 		{
+			name:     "unescaped",
+			input:    "\001\"",
+			expected: "\001\\\"",
+			quote:    true,
+			raw:      true,
+		},
+		{
 			name:     "backslash",
 			input:    `C:\Path`,
 			expected: `C:\\Path`,
@@ -95,9 +107,9 @@ func TestEscape(t *testing.T) {
 		},
 		{
 			name:     "regedit export",
-			input:    `Software\Foobar\🌎[]"foo"`,
-			expected: `Software\Foobar\🌎[]"foo"`,
-			quote:    false,
+			input:    "Software\\Foobar\\🌎[]\"foo\"\001",
+			expected: "Software\\\\Foobar\\\\🌎[]\\\"foo\\\"\001",
+			quote:    true,
 			raw:      true,
 		},
 	} {
