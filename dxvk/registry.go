@@ -5,12 +5,12 @@ import (
 	"slices"
 )
 
-var dllOverridesKey = `HKEY_CURRENT_USER\Software\Wine\DllOverrides`
+var overridesRegPath = `HKEY_CURRENT_USER\Software\Wine\DllOverrides`
 
 // Overriden checks if the DXVK DLL overrides have been
 // installed in the Wineprefix.
 func Overriden(pfx *wine.Prefix) (bool, error) {
-	k, err := pfx.RegistryQuery(dllOverridesKey)
+	k, err := pfx.RegistryQuery(overridesRegPath)
 	if err != nil {
 		return false, err
 	}
@@ -41,19 +41,20 @@ func Overriden(pfx *wine.Prefix) (bool, error) {
 // This can be used regardless if DXVK is installed in the
 // Wineprefix or not.
 func AddOverrides(pfx *wine.Prefix) error {
-	return pfx.RegistryImport(registryData(`"native,builtin"`))
+	return pfx.RegistryImportKey(registryKey("native,builtin"))
 }
 
 // AddOverrides removes the DXVK DLL overrides to the Wineprefix.
 func RemoveOverrides(pfx *wine.Prefix) error {
-	return pfx.RegistryImport(registryData(`-`))
+	// Delete the overrides
+	return pfx.RegistryImportKey(registryKey(nil))
 }
 
-func registryData(value string) string {
-	return "Windows Registry Editor Version 5.00\n\n" +
-		"[" + dllOverridesKey + "]\n" +
-		`"d3d10core"=` + value + "\n" +
-		`"d3d11"=` + value + "\n" +
-		`"d3d9"=` + value + "\n" +
-		`"dxgi"=` + value
+func registryKey(dllOverride any) *wine.RegistryKey {
+	k := wine.NewRegistryKey(overridesRegPath)
+	k.SetValue("d3d10core", dllOverride)
+	k.SetValue("d3d11", dllOverride)
+	k.SetValue("d3d9", dllOverride)
+	k.SetValue("dxgi", dllOverride)
+	return k
 }
