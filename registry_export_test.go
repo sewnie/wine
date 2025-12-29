@@ -33,6 +33,9 @@ func TestRegistryExport(t *testing.T) {
 }
 
 func TestRegistryPrefixExport(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	reg, err := testPfx.Registry()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

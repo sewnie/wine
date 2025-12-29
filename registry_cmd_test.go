@@ -5,6 +5,9 @@ import (
 )
 
 func TestPrefixCmdOperations(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	path := `HKCU\Software\Foobar`
 
 	key := NewRegistryKey(path)
