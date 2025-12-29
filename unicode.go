@@ -139,11 +139,17 @@ func Escape(src string, quote bool, raw bool) string {
 			continue
 		}
 
-		if c < 32 {
-			if raw {
-				sb.WriteRune(rune(c))
+		if c < 32 && raw {
+			if c == '\n' {
+				// newlines are an exception
+				sb.WriteString(`\n`)
 				continue
 			}
+			sb.WriteRune(rune(c))
+			continue
+		}
+
+		if c < 32 {
 			switch c {
 			case '\a':
 				sb.WriteString(`\a`)
