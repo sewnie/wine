@@ -98,12 +98,13 @@ func URL(ver string) string {
 // If other DLLs such as d3d8 are needed to track, it is reccomended
 // to store the installed version of DXVK prior to [Extract].
 func Version(pfx *wine.Prefix) (string, error) {
-	return dllVersion(filepath.Join(
+	return DLLVersion(filepath.Join(
 		pfx.Dir(), "drive_c", "windows", "system32", "d3d11.dll"))
 }
 
-// Only valid for d3d9, d3d11 & dxgi
-func dllVersion(dllName string) (string, error) {
+// DLLVersion returns the presumed D3D11, D3D9, DXGI DLL
+// DXVK version by scanning inside the DLL contents.
+func DLLVersion(dllName string) (string, error) {
 	f, err := peutil.Open(dllName)
 	if err != nil {
 		return "", err
