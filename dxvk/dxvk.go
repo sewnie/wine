@@ -20,16 +20,13 @@ import (
 	"github.com/sewnie/wine/peutil"
 )
 
-// EnvOverride appends DXVK DLL overrides to the given Wineprefix's
-// environment variables.
-func EnvOverride(pfx *wine.Prefix, enabled bool) {
+// EnvOverride appends DirectX DLL overrides to the given Wineprefix's
+// environment variables to prefer the overriden DLLs inside the Wineprefix.
+// This will allow DXVK, if overriden, to function, and if not installed,
+// this function will not do much.
+func EnvOverride(pfx *wine.Prefix) {
 	name := "WINEDLLOVERRIDES"
-	val := "d3d9,d3d10core,d3d11,dxgi="
-	if enabled {
-		val += "native"
-	} else {
-		val += "builtin"
-	}
+	val := "d3d9,d3d10core,d3d11,dxgi=n,b"
 
 	for i, env := range pfx.Env {
 		if !strings.HasPrefix(env, name) {
