@@ -63,7 +63,7 @@ func (p *Prefix) Prepare() error {
 
 // Start ensures the Wineprefix's server is running and is
 // prepared to run any Wine application. The persistence is
-// automatically set to 32. If the Wineserver is already running,
+// automatically set to 6. If the Wineserver is already running,
 // this will return nil.
 //
 // Wine applications will do this by default, but will have a few
@@ -73,7 +73,7 @@ func (p *Prefix) Start() error {
 	if p.Running() {
 		return nil
 	}
-	err := p.Server(ServerPersistent, "32")
+	err := p.Server(ServerPersistent, "6")
 	if err != nil {
 		return err
 	}
