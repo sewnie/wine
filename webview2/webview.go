@@ -21,6 +21,10 @@ const url = "https://msedge.api.cdp.microsoft.com/api"
 // Edge WebView2.
 type Channel string
 
+// VersionPath is the registry path to open and check against the DisplayVersion key for
+// retreiving the current installed version of Edge WebView2.
+const VersionPath = `HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView`
+
 const (
 	Stable       Channel = "msedge-stable-win"
 	StableLegacy Channel = "msedge-stable-win7and8"
@@ -124,10 +128,13 @@ func Installed(pfx *wine.Prefix, version string) bool {
 }
 
 // Current returns the current installed WebView2 version in the given
-// Wineprefix. If an error occured, an empty string will be returned.
+// Wineprefix, by invoking the registry file. If an error occured, an
+// empty string will be returned.
+//
+// It is reccomended to store the registry from [Prefix.Registry] and perform the
+// check manually, see [VersionPath].
 func Current(pfx *wine.Prefix) string {
-	path := `HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft EdgeWebView`
-	k, _ := pfx.RegistryQuery(path)
+	k, _ := pfx.RegistryQuery(VersionPath)
 	if k != nil {
 		if v := k.GetValue("DisplayVersion"); v != nil {
 			return v.Data.(string)
