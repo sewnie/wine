@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	// Read the wineserver(1) man page for more details.
 	ServerDebug      = "--debug"
 	ServerForeground = "--foreground"
 	ServerKill       = "--kill"
@@ -14,6 +15,7 @@ const (
 )
 
 const (
+	// Read the wineboot(1) man page for more details.
 	BootEndSession = "--end-session"
 	BootForceExit  = "--force"
 	BootInit       = "--init"
@@ -73,7 +75,7 @@ func (p *Prefix) Start() error {
 	if p.Running() {
 		return nil
 	}
-	err := p.Server(ServerPersistent, "6")
+	err := p.Server(ServerPersistent + "=6")
 	if err != nil {
 		return err
 	}
