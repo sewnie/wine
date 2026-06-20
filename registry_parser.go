@@ -60,10 +60,11 @@ func (k *RegistryKey) Import(r io.Reader) error {
 				return fmt.Errorf("wine: unexpected path directive")
 			}
 
-			switch path := line[i+1:]; path {
-			case `REGISTRY\\User\\` + sid:
+			switch path := line[i+1:]; {
+			case strings.HasPrefix(path, `REGISTRY\\User\\`) &&
+				path != `REGISTRY\\User\\.Default`:
 				k.Name = "HKEY_CURRENT_USER"
-			case `REGISTRY\\Machine`:
+			case path == `REGISTRY\\Machine`:
 				k.Name = "HKEY_LOCAL_MACHINE"
 			default:
 				return fmt.Errorf("wine: unknown registry path: %s", path)
