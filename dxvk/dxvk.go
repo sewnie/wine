@@ -71,9 +71,9 @@ func Restore(pfx *wine.Prefix) error {
 func URL(ver string) string {
 	if v, ok := strings.CutPrefix(ver, "Sarek-"); ok {
 		name := "dxvk-sarek"
-		v, ok := strings.CutSuffix(v, "-async")
+		v, ok := strings.CutSuffix(v, "-dyasync")
 		if ok {
-			name += "-async"
+			name += "-dyasync"
 		}
 
 		return fmt.Sprintf("%s/releases/download/v%[2]s/%[3]s-v%[2]s.tar.gz",
