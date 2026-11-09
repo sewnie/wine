@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/user"
 	"path/filepath"
 	"syscall"
 )
@@ -83,6 +84,24 @@ func (p *Prefix) Running() bool {
 		os.Getuid(), stat.Dev, stat.Ino), "socket")
 	_, err = os.Stat(lock)
 	return err == nil
+}
+
+// AppDataDir returns the current user's AppData within the Prefix. If no
+// user is set in the environment, a empty string is returned.
+func (p *Prefix) AppDataDir() string {
+	name := os.Getenv("USER")
+
+	if p.IsProton() {
+		name = "steamuser"
+	} else if name == "" {
+		sys, err := user.Current()
+		if err != nil {
+			return ""
+		}
+		name = sys.Username
+	}
+
+	return filepath.Join(p.dir, "drive_c", "users", name, "AppData")
 }
 
 func (p *Prefix) bin(prog string) string {
