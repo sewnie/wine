@@ -4,9 +4,9 @@ import (
 	"testing"
 )
 
-func TestPrefixCmdOperations(t *testing.T) {
+func TestPrefixRegistryCmds(t *testing.T) {
 	if testing.Short() {
-		t.Skip()
+		t.SkipNow()
 	}
 	path := `HKCU\Software\Foobar`
 

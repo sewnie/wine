@@ -7,82 +7,90 @@ import (
 	"testing"
 )
 
-func TestRegistry(t *testing.T) {
+func TestRootRegistryKeyExport(t *testing.T) {
 	dir := t.TempDir()
 	pfx := New(dir, "")
 
-	if err := os.WriteFile(filepath.Join(pfx.dir, "system.reg"), []byte(registrySystemData), 0o644); err != nil {
-		t.Errorf("unexpected system write error: %v", err)
-	}
-
-	if err := os.WriteFile(filepath.Join(pfx.dir, "user.reg"), []byte(registryUserData), 0o644); err != nil {
-		t.Errorf("unexpected user write error: %v", err)
-	}
-
-	reg, err := pfx.Registry()
-	if err != nil {
-		t.Errorf("unexpected read error: %v", err)
-	}
-
-	exp := &Registry{
-		Machine: &RegistryKey{
+	for _, data := range []struct {
+		key  string
+		name string
+		cont string
+		raw  RootRegistryKey
+	}{
+		{"HKLM", "system.reg", registrySystemData, RootRegistryKey(&RegistryKey{
 			Name: "HKEY_LOCAL_MACHINE",
 			Subkeys: []*RegistryKey{{Name: "Software", Subkeys: []*RegistryKey{{
 				Name:     "Foobar",
 				Values:   []RegistryValue{{Name: "Foo", Data: "Bar"}},
 				modified: Filetime(0x1dc3e01c855469c),
 			}}}},
-		},
-		CurrentUser: &RegistryKey{
+		})},
+		{"HKCU", "user.reg", registryUserData, RootRegistryKey(&RegistryKey{
 			Name: "HKEY_CURRENT_USER",
 			Subkeys: []*RegistryKey{{Name: "Software", Subkeys: []*RegistryKey{{
 				Name:     "Foobar",
 				Values:   []RegistryValue{{Name: "Foo", Data: "Bar"}},
 				modified: Filetime(0x1dc3e01c855469c),
 			}}}},
-		},
+		})},
+	} {
+		t.Run(data.key, func(t *testing.T) {
+			if err := os.WriteFile(
+				filepath.Join(pfx.dir, data.name), []byte(data.cont), 0o644); err != nil {
+				t.Errorf("unexpected write error: %v", err)
+			}
+
+			key, err := pfx.RegistryOpenKey(data.key)
+			if err != nil {
+				t.Errorf("unexpected read error: %v", err)
+			}
+
+			t.Run("match", func(t *testing.T) {
+				if !key.Equal(data.raw) {
+					t.Fatalf("expected parsed key match, got %v", registryKeyJSON(key))
+				}
+			})
+
+			t.Run("export", func(t *testing.T) {
+				buf := bytes.Buffer{}
+
+				_ = key.exportSystem(&buf)
+				if b := buf.Bytes(); !bytes.Equal(b, []byte(data.cont)) {
+					t.Log(string(b))
+					t.Fatalf("expected key export match")
+				}
+			})
+		})
 	}
-
-	equalRegistry(t, reg, exp)
-
-	if err := reg.Save(); err != nil {
-		t.Fatalf("unexpected save error: %v", err)
-	}
-
-	reg, err = pfx.Registry()
-	if err != nil {
-		t.Errorf("unexpected reread error: %v", err)
-	}
-
-	// check if reversible
-
-	t.Run("reversible", func(t *testing.T) {
-		equalRegistry(t, reg, exp)
-	})
 }
 
-func equalRegistry(t *testing.T, reg, exp *Registry) {
-	if !reg.CurrentUser.Equal(exp.CurrentUser) {
-		t.Fatalf("expected parsed key match, got %v", registryKeyJSON(reg.CurrentUser))
+func TestPrefixRootRegistryKeyExport(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
 	}
 
-	if !reg.Machine.Equal(exp.Machine) {
-		t.Fatalf("expected parsed key match, got %v", registryKeyJSON(reg.Machine))
-	}
+	for _, data := range []struct {
+		key  string
+		name string
+	}{
+		{"HKLM", "system.reg"},
+		{"HKCU", "user.reg"},
+	} {
+		t.Run(data.key, func(t *testing.T) {
+			org, err := os.ReadFile(filepath.Join(testPfx.dir, data.name))
+			if err != nil {
+				t.Errorf("unexpected system read error: %v", err)
+			}
 
-	buf := bytes.Buffer{}
+			buf := bytes.Buffer{}
 
-	_ = reg.Machine.exportSystem(&buf)
-	if b := buf.Bytes(); !bytes.Equal(b, []byte(registrySystemData)) {
-		t.Log(string(b))
-		t.Fatalf("expected machine key export match")
-	}
-
-	buf.Reset()
-	_ = reg.CurrentUser.exportSystem(&buf)
-	if b := buf.Bytes(); !bytes.Equal(b, []byte(registryUserData)) {
-		t.Log(string(b))
-		t.Fatalf("expected user key export match")
+			key, _ := testPfx.RegistryOpenKey(data.key)
+			_ = key.exportSystem(&buf)
+			if b := buf.Bytes(); !bytes.Equal(b, []byte(org)) {
+				t.Log(string(b))
+				t.Fail()
+			}
+		})
 	}
 }
 

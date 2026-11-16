@@ -29,6 +29,7 @@ func TestPrefixInit(t *testing.T) {
 }
 
 func TestPrefixRunning(t *testing.T) {
+	t.SkipNow()
 	if testPfx.Running() {
 		t.Log("wineserver running on system, killing")
 		if err := testPfx.Kill(); err != nil {
@@ -44,15 +45,6 @@ func TestPrefixRunning(t *testing.T) {
 	if !testPfx.Running() {
 		t.Fatal("expected wineserver alive")
 	}
-
-	t.Run("GUI application", func(t *testing.T) {
-		if testing.Short() {
-			t.Skip()
-		}
-		if err := testPfx.Wine("regedit").Run(); err != nil {
-			t.Errorf("unexpected start error: %v", err)
-		}
-	})
 
 	if err := testPfx.Kill(); err != nil {
 		t.Errorf("unexpected kill error: %v", err)

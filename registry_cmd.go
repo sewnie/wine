@@ -107,7 +107,6 @@ func (p *Prefix) RegistryQuery(path string) (*RegistryKey, error) {
 		return nil, err
 	}
 
-	var reg Registry
 	var subkey *RegistryKey
 
 	scanner := bufio.NewScanner(bytes.NewReader(data))
@@ -117,12 +116,24 @@ func (p *Prefix) RegistryQuery(path string) (*RegistryKey, error) {
 
 		switch len(out) {
 		case 1:
-			path := out[0]
-			if path == "" {
-				subkey = nil
+			cur := out[0]
+			if cur == "" {
 				continue
 			}
-			subkey = reg.queryPath(path, true)
+
+			i := strings.Index(cur, `\`)
+			if i < 0 {
+				i = len(path)
+			}
+
+			if subkey != nil {
+				subkey = subkey.Parent().queryPath(cur[i+1:], true)
+				continue
+			}
+
+			// trust the reg(1) key naming
+			root := &RegistryKey{Name: cur[:i]}
+			subkey = root.queryPath(cur[i+1:], true)
 		case 4:
 			if subkey == nil {
 				return nil, errors.New("wine: value without key")
@@ -135,10 +146,16 @@ func (p *Prefix) RegistryQuery(path string) (*RegistryKey, error) {
 		}
 	}
 
-	if k := reg.Query(path); k != nil {
+	// parent index, root parent key must present
+	i := strings.Index(path, `\`)
+	if i < 0 {
+		i = len(path)
+	}
+
+	if k := subkey.Root().Query(path[i+1:]); k != nil {
 		return k, nil
 	}
-	return nil, errors.New("wine: expected successful key creation")
+	return nil, errors.New("wine: expected successful parent key creation")
 }
 
 func parseCmdData(dataType string, data string) (RegistryData, error) {
